@@ -1,20 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Guild Roster</title>
+  <title>Chewbooty Guild Roster</title>
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 </head>
 <body>
   <h1>Chewbooty Guild Roster</h1>
-  <table id="roster" class="display"></table>
+
+  <table id="roster" class="display">
+    <thead>
+      <tr>
+        <th>Player Name</th>
+        <th>GP</th>
+        <th>Player Skill Rating</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>s0da p0pinski</td><td>13,654,676</td><td>3,429</td></tr>
+      <tr><td>ItzBerndern</td><td>13,498,828</td><td>3,459</td></tr>
+      <tr><td>Bobandy</td><td>13,316,734</td><td>3,461</td></tr>
+      <!-- continue with the rest of your roster -->
+    </tbody>
+  </table>
 
   <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script>
     $(document).ready(function() {
-      $('#roster').DataTable({
-        ajax: 'chewbooty.csv'
-      });
+      $('#roster').DataTable();
     });
   </script>
 </body>

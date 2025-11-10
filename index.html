@@ -30,21 +30,23 @@
         <th data-col="TotalGP">Total GP</th>
         <th data-col="LeagueId">League</th>
         <th data-col="SkillRating">Skill Rating</th>
-        <th data-col="G13Count">G13</th>
-        <th data-col="Relics">Relics</th>
+        <th data-col="ModScore">Mod Score</th>
+        <th data-col="GearScore">Gear Score</th>
+        <th data-col="TotalScore">Total Score</th>
         <th data-col="ZetaCount">Zetas</th>
         <th data-col="OmiCount">Omicrons</th>
         <th data-col="Speed20">Speed ≥20</th>
         <th data-col="Speed25">Speed ≥25</th>
         <th data-col="UltimateGLCount">Ultimate GL</th>
         <th>Net Change (GP)</th>
+        <th>Net Change (Total Score)</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
 <script>
-const FILES = ["ChewbootyOld.csv","Chewbooty.csv"]; // always compare these two
+const FILES = ["ChewbootyOld.csv","Chewbooty.csv"]; // baseline vs current
 
 Promise.all(FILES.map(f => fetch(f).then(r=>r.text())))
   .then(([oldCSV,newCSV]) => {
@@ -58,6 +60,12 @@ function parseCSV(csvText) {
   return {header: rows[0], data: rows.slice(1)};
 }
 
+function formatDiff(diff,isScore=false) {
+  const cls = diff>0?'pos':diff<0?'neg':'zero';
+  const val = isScore?diff.toFixed(2):diff.toLocaleString();
+  return `<span class="${cls}">${diff>0?'+':''}${val}</span>`;
+}
+
 function renderComparison(oldText,newText) {
   const old = parseCSV(oldText);
   const newer = parseCSV(newText);
@@ -69,14 +77,14 @@ function renderComparison(oldText,newText) {
     ShipGP: newer.header.indexOf("ShipGP"),
     League: newer.header.indexOf("LeagueId"),
     Skill: newer.header.indexOf("SkillRating"),
-    G13: newer.header.indexOf("G13Count"),
+    ModScore: newer.header.indexOf("ModScore"),
+    GearScore: newer.header.indexOf("GearScore"),
+    TotalScore: newer.header.indexOf("TotalScore"),
     Zetas: newer.header.indexOf("ZetaCount"),
     Omis: newer.header.indexOf("OmiCount"),
     Speed20: newer.header.indexOf("Speed20"),
     Speed25: newer.header.indexOf("Speed25"),
-    UltGL: newer.header.indexOf("UltimateGLCount"),
-    RelicStart: newer.header.indexOf("Relic1Count"),
-    RelicEnd: newer.header.indexOf("Relic9Count")
+    UltGL: newer.header.indexOf("UltimateGLCount")
   };
 
   const tbody = document.querySelector("#guildTable tbody");
@@ -84,18 +92,22 @@ function renderComparison(oldText,newText) {
 
   newer.data.forEach(row => {
     const totalGP = (+row[colMap.CharGP]||0) + (+row[colMap.ShipGP]||0);
-    const relics = row.slice(colMap.RelicStart,colMap.RelicEnd+1)
-                      .reduce((sum,v)=>sum+(+v||0),0);
 
-    // match by AllyCode (baseline = ChewbootyOld.csv)
+    // match by AllyCode
     const newCode = (row[colMap.AllyCode]||"").trim();
     const oldRow = old.data.find(r => (r[old.header.indexOf("AllyCode")]||"").trim() === newCode);
 
-    let netChange = `<span class="zero">0</span>`;
+    let netChangeGP = `<span class="zero">0</span>`;
+    let netChangeScore = `<span class="zero">0</span>`;
     if (oldRow) {
       const oldGP = (+oldRow[old.header.indexOf("CharacterGP")]||0) + (+oldRow[old.header.indexOf("ShipGP")]||0);
-      const diff = totalGP - oldGP;
-      netChange = `<span class="${diff>0?'pos':diff<0?'neg':'zero'}">${diff>0?'+':''}${diff.toLocaleString()}</span>`;
+      const diffGP = totalGP - oldGP;
+      netChangeGP = formatDiff(diffGP);
+
+      const oldScore = (+oldRow[old.header.indexOf("TotalScore")]||0);
+      const newScore = (+row[colMap.TotalScore]||0);
+      const diffScore = newScore - oldScore;
+      netChangeScore = formatDiff(diffScore,true);
     }
 
     const allyCode = row[colMap.AllyCode];
@@ -110,14 +122,16 @@ function renderComparison(oldText,newText) {
       <td>${totalGP.toLocaleString()}</td>
       <td>${row[colMap.League]}</td>
       <td>${row[colMap.Skill]}</td>
-      <td>${row[colMap.G13]}</td>
-      <td>${relics}</td>
+      <td>${row[colMap.ModScore]}</td>
+      <td>${row[colMap.GearScore]}</td>
+      <td>${row[colMap.TotalScore]}</td>
       <td>${row[colMap.Zetas]}</td>
       <td>${row[colMap.Omis]}</td>
       <td>${row[colMap.Speed20]}</td>
       <td>${row[colMap.Speed25]}</td>
       <td>${row[colMap.UltGL]}</td>
-      <td>${netChange}</td>
+      <td>${netChangeGP}</td>
+      <td>${netChangeScore}</td>
     `;
     tbody.appendChild(tr);
   });

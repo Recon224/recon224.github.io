@@ -1,180 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Chewbooty Guild Roster</title>
+  <meta charset="UTF-8" />
+  <title>Chewbooty GP Comparison</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; background:#1c1c1c; color:#f0f0f0; margin:20px; }
-    h1 { text-align:center; color:#ffd700; }
-    table { width:100%; border-collapse:collapse; margin-top:20px; background:#2a2a2a; }
-    th, td { border:1px solid #444; padding:6px 8px; text-align:center; }
-    th { background:#333; color:#ffd700; cursor:pointer; position:sticky; top:0; }
-    tr:nth-child(even) { background:#242424; }
-    tr:hover { background:#3a3a3a; }
-    .pos { color:#00ff00; font-weight:bold; }
-    .neg { color:#ff4444; font-weight:bold; }
-    a { color:#66ccff; text-decoration:none; }
-    a:hover { text-decoration:underline; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #111;
+      color: #eee;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #222;
+    }
+    tr:nth-child(even) {
+      background-color: #1a1a1a;
+    }
+    .positive { color: #5af25a; }
+    .negative { color: #ff4c4c; }
+    .neutral { color: #ccc; }
   </style>
 </head>
 <body>
-  <h1>Chewbooty Guild Roster</h1>
-  <table id="guildTable">
+
+  <h1>Chewbooty Guild — GP Comparison</h1>
+  <p>This table compares the new <code>Chewbooty.csv</code> file with the previous month’s <code>ChewbootyOld.csv</code>.</p>
+
+  <table id="comparison">
     <thead>
       <tr>
-        <th data-col="Name">Player</th>
-        <th data-col="AllyCode">SWGOH.gg</th>
-        <th data-col="CharacterGP">Character GP</th>
-        <th data-col="ShipGP">Ship GP</th>
-        <th data-col="TotalGP">Total GP</th>
-        <th data-col="LeagueId">League</th>
-        <th data-col="SkillRating">Skill Rating</th>
-        <th data-col="G13Count">G13</th>
-        <th data-col="Relics">Relics</th>
-        <th data-col="ZetaCount">Zetas</th>
-        <th data-col="OmiCount">Omicrons</th>
-        <th data-col="Speed20">Speed ≥20</th>
-        <th data-col="Speed25">Speed ≥25</th>
-        <th data-col="UltimateGLCount">Ultimate GL</th>
-        <th>Net Change (GP)</th>
+        <th>Player</th>
+        <th>Ally Code</th>
+        <th>Character GP</th>
+        <th>Ship GP</th>
+        <th>Total GP</th>
+        <th>Net Change</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
-<script>
-const FILES = ["ChewbootyOld.csv", "Chewbooty.csv"]; // compare these two
+  <script>
+    // Fetch and parse both CSV files
+    Promise.all([
+      fetch('Chewbooty.csv').then(r => r.text()),
+      fetch('ChewbootyOld.csv').then(r => r.text())
+    ]).then(([newCSV, oldCSV]) => {
+      // Remove potential BOM (Byte Order Mark)
+      newCSV = newCSV.replace(/^\uFEFF/, '');
+      oldCSV = oldCSV.replace(/^\uFEFF/, '');
 
-Promise.all([
-  fetch('Chewbooty.csv').then(r => r.text()),
-  fetch('ChewbootyOld.csv').then(r => r.text())
-]).then(([newCSV, oldCSV]) => {
-  // Remove BOM and hidden characters
-  oldCSV = oldCSV.replace(/^\uFEFF/, '');
-  newCSV = newCSV.replace(/^\uFEFF/, '');
-  
-  const newData = Papa.parse(newCSV, { header: true }).data;
-  const oldData = Papa.parse(oldCSV, { header: true }).data;
-  
-  renderComparison(newData, oldData);
-});
+      const newData = Papa.parse(newCSV, { header: true }).data;
+      const oldData = Papa.parse(oldCSV, { header: true }).data;
 
+      renderComparison(newData, oldData);
+    });
 
-function parseCSV(csvText) {
-  const rows = csvText.trim().split(/\r?\n/).map(r => r.split(','));
-  return { header: rows[0], data: rows.slice(1) };
-}
+    function renderComparison(newData, oldData) {
+      const tbody = document.querySelector("#comparison tbody");
+      tbody.innerHTML = "";
 
-function renderComparison(oldText, newText) {
-  const old = parseCSV(oldText);
-  const newer = parseCSV(newText);
+      // Map old data by AllyCode for efficient lookups
+      const oldMap = {};
+      oldData.forEach(p => {
+        if (p.AllyCode) {
+          oldMap[p.AllyCode.trim()] = p;
+        }
+      });
 
-  const colMap = {
-    Name: newer.header.indexOf("Name"),
-    AllyCode: newer.header.indexOf("AllyCode"),
-    CharGP: newer.header.indexOf("CharacterGP"),
-    ShipGP: newer.header.indexOf("ShipGP"),
-    League: newer.header.indexOf("LeagueId"),
-    Skill: newer.header.indexOf("SkillRating"),
-    G13: newer.header.indexOf("G13Count"),
-    Zetas: newer.header.indexOf("ZetaCount"),
-    Omis: newer.header.indexOf("OmiCount"),
-    Speed20: newer.header.indexOf("Speed20"),
-    Speed25: newer.header.indexOf("Speed25"),
-    UltGL: newer.header.indexOf("UltimateGLCount"),
-    RelicStart: newer.header.indexOf("Relic1Count"),
-    RelicEnd: newer.header.indexOf("Relic9Count")
-  };
+      newData.forEach(player => {
+        if (!player.AllyCode) return;
 
-  // Build fast lookup map for old data
-  const oldMap = {};
-  const oldNameIdx = old.header.indexOf("Name");
-  old.data.forEach(r => {
-    const key = (r[oldNameIdx] || "").trim().toLowerCase();
-    oldMap[key] = r;
-  });
+        const old = oldMap[player.AllyCode.trim()];
+        const newCharGP = parseNumber(player.CharacterGP);
+        const newShipGP = parseNumber(player.ShipGP);
+        const newTotalGP = newCharGP + newShipGP;
 
-  const tbody = document.querySelector("#guildTable tbody");
-  tbody.innerHTML = "";
+        let changeText = "New Player";
+        let changeClass = "neutral";
 
-  newer.data.forEach(row => {
-    const name = (row[colMap.Name] || "").trim();
-    const key = name.toLowerCase();
-    const parseNum = v => Number(String(v).replace(/[,\s"]/g, "")) || 0;
+        if (old) {
+          const oldCharGP = parseNumber(old.CharacterGP);
+          const oldShipGP = parseNumber(old.ShipGP);
+          const oldTotalGP = oldCharGP + oldShipGP;
 
-    const totalGP = parseNum(row[colMap.CharGP]) + parseNum(row[colMap.ShipGP]);
-    const relics = row
-      .slice(colMap.RelicStart, colMap.RelicEnd + 1)
-      .reduce((sum, v) => sum + parseNum(v), 0);
+          const netChange = newTotalGP - oldTotalGP;
 
-    const oldRow = oldMap[key];
-    let netChange = "";
-    if (oldRow) {
-      const oldGP =
-        parseNum(oldRow[old.header.indexOf("CharacterGP")]) +
-        parseNum(oldRow[old.header.indexOf("ShipGP")]);
-      const diff = totalGP - oldGP;
-      netChange = `<span class="${diff >= 0 ? "pos" : "neg"}">${
-        diff >= 0 ? "+" : ""
-      }${diff.toLocaleString()}</span>`;
-    } else {
-      netChange = `<span class="pos">New Player</span>`;
+          if (netChange > 0) {
+            changeText = `+${formatNumber(netChange)}`;
+            changeClass = "positive";
+          } else if (netChange < 0) {
+            changeText = formatNumber(netChange);
+            changeClass = "negative";
+          } else {
+            changeText = "0";
+            changeClass = "neutral";
+          }
+        }
+
+        const row = `
+          <tr>
+            <td>${player.Name}</td>
+            <td>${player.AllyCode}</td>
+            <td>${formatNumber(player.CharacterGP)}</td>
+            <td>${formatNumber(player.ShipGP)}</td>
+            <td>${formatNumber(newTotalGP)}</td>
+            <td class="${changeClass}">${changeText}</td>
+          </tr>
+        `;
+        tbody.insertAdjacentHTML("beforeend", row);
+      });
     }
 
-    const allyCode = row[colMap.AllyCode];
-    const swgohLink = allyCode
-      ? `<a href="https://swgoh.gg/p/${allyCode}/" target="_blank">${allyCode}</a>`
-      : "";
+    // Utility: safely parse numbers that may contain commas or quotes
+    function parseNumber(val) {
+      if (!val) return 0;
+      return Number(String(val).replace(/,/g, "").trim()) || 0;
+    }
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${name}</td>
-      <td>${swgohLink}</td>
-      <td>${parseNum(row[colMap.CharGP]).toLocaleString()}</td>
-      <td>${parseNum(row[colMap.ShipGP]).toLocaleString()}</td>
-      <td>${totalGP.toLocaleString()}</td>
-      <td>${row[colMap.League]}</td>
-      <td>${row[colMap.Skill]}</td>
-      <td>${row[colMap.G13]}</td>
-      <td>${relics}</td>
-      <td>${row[colMap.Zetas]}</td>
-      <td>${row[colMap.Omis]}</td>
-      <td>${row[colMap.Speed20]}</td>
-      <td>${row[colMap.Speed25]}</td>
-      <td>${row[colMap.UltGL]}</td>
-      <td>${netChange}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  makeSortable();
-}
-
-function makeSortable() {
-  const headers = document.querySelectorAll("th[data-col]");
-  headers.forEach(th => {
-    th.onclick = () => {
-      const col = th.getAttribute("data-col");
-      sortTable(col);
-    };
-  });
-}
-
-function sortTable(col) {
-  const table = document.getElementById("guildTable");
-  const rows = Array.from(table.tBodies[0].rows);
-  const idx = Array.from(table.tHead.rows[0].cells).findIndex(
-    c => c.getAttribute("data-col") === col
-  );
-
-  rows.sort((a, b) => {
-    const valA = a.cells[idx].innerText.replace(/,/g, "");
-    const valB = b.cells[idx].innerText.replace(/,/g, "");
-    return Number(valB) - Number(valA);
-  });
-
-  rows.forEach(r => table.tBodies[0].appendChild(r));
-}
-</script>
+    // Utility: format numbers with commas
+    function formatNumber(num) {
+      return Number(num).toLocaleString("en-US");
+    }
+  </script>
 </body>
 </html>

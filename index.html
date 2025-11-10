@@ -18,8 +18,6 @@
 </head>
 <body>
   <h1>Chewbooty Guild Roster</h1>
-  <button id="reloadBtn">Reload Fixed CSV</button>
-  <input type="file" id="fileInput" accept=".csv" />
   <table id="guildTable">
     <thead>
       <tr>
@@ -44,72 +42,54 @@
   </table>
 
 <script>
-let previousData = null; // store last CSV data
-const FIXED_URL = "Chewbooty.csv"; // replace with hosted CSV URL
+const FILES = ["ChewbootyOld.csv","Chewbooty.csv"]; // always compare these two
 
-document.getElementById('reloadBtn').addEventListener('click', () => {
-  fetch(FIXED_URL).then(r=>r.text()).then(text => {
-    previousData = null; // reset comparison
-    renderTable(text);
+Promise.all(FILES.map(f => fetch(f).then(r=>r.text())))
+  .then(([oldCSV,newCSV]) => {
+    renderComparison(oldCSV,newCSV);
   });
-});
-
-document.getElementById('fileInput').addEventListener('change', handleFile);
-
-function handleFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const text = e.target.result;
-    renderTable(text, previousData);
-    previousData = parseCSV(text); // store for next upload
-  };
-  reader.readAsText(file);
-}
 
 function parseCSV(csvText) {
   const rows = csvText.trim().split(/\r?\n/).map(r => r.split(','));
-  const header = rows[0];
-  const data = rows.slice(1);
-  return {header, data};
+  return {header: rows[0], data: rows.slice(1)};
 }
 
-function renderTable(csvText, prev=null) {
-  const {header, data} = parseCSV(csvText);
+function renderComparison(oldText,newText) {
+  const old = parseCSV(oldText);
+  const newer = parseCSV(newText);
+
   const colMap = {
-    Name: header.indexOf("Name"),
-    DiscordTag: header.indexOf("DiscordTag"),
-    CharGP: header.indexOf("CharacterGP"),
-    ShipGP: header.indexOf("ShipGP"),
-    League: header.indexOf("LeagueId"),
-    Skill: header.indexOf("SkillRating"),
-    G13: header.indexOf("G13Count"),
-    Zetas: header.indexOf("ZetaCount"),
-    Omis: header.indexOf("OmiCount"),
-    Speed20: header.indexOf("Speed20"),
-    Speed25: header.indexOf("Speed25"),
-    UltGL: header.indexOf("UltimateGLCount"),
-    RelicStart: header.indexOf("Relic1Count"),
-    RelicEnd: header.indexOf("Relic9Count")
+    Name: newer.header.indexOf("Name"),
+    DiscordTag: newer.header.indexOf("DiscordTag"),
+    CharGP: newer.header.indexOf("CharacterGP"),
+    ShipGP: newer.header.indexOf("ShipGP"),
+    League: newer.header.indexOf("LeagueId"),
+    Skill: newer.header.indexOf("SkillRating"),
+    G13: newer.header.indexOf("G13Count"),
+    Zetas: newer.header.indexOf("ZetaCount"),
+    Omis: newer.header.indexOf("OmiCount"),
+    Speed20: newer.header.indexOf("Speed20"),
+    Speed25: newer.header.indexOf("Speed25"),
+    UltGL: newer.header.indexOf("UltimateGLCount"),
+    RelicStart: newer.header.indexOf("Relic1Count"),
+    RelicEnd: newer.header.indexOf("Relic9Count")
   };
 
   const tbody = document.querySelector("#guildTable tbody");
   tbody.innerHTML = "";
 
-  data.forEach(row => {
+  newer.data.forEach(row => {
     const totalGP = (+row[colMap.CharGP]||0) + (+row[colMap.ShipGP]||0);
-    const relics = row.slice(colMap.RelicStart, colMap.RelicEnd+1)
+    const relics = row.slice(colMap.RelicStart,colMap.RelicEnd+1)
                       .reduce((sum,v)=>sum+(+v||0),0);
 
+    // find matching player in old file
+    const oldRow = old.data.find(r => r[old.header.indexOf("Name")] === row[colMap.Name]);
     let netChange = "";
-    if (prev) {
-      const prevRow = prev.data.find(r => r[prev.header.indexOf("Name")] === row[colMap.Name]);
-      if (prevRow) {
-        const prevGP = (+prevRow[prev.header.indexOf("CharacterGP")]||0) + (+prevRow[prev.header.indexOf("ShipGP")]||0);
-        const diff = totalGP - prevGP;
-        netChange = `<span class="${diff>=0?'pos':'neg'}">${diff>=0?'+':''}${diff.toLocaleString()}</span>`;
-      }
+    if (oldRow) {
+      const oldGP = (+oldRow[old.header.indexOf("CharacterGP")]||0) + (+oldRow[old.header.indexOf("ShipGP")]||0);
+      const diff = totalGP - oldGP;
+      netChange = `<span class="${diff>=0?'pos':'neg'}">${diff>=0?'+':''}${diff.toLocaleString()}</span>`;
     }
 
     const tr = document.createElement("tr");

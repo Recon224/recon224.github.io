@@ -11,9 +11,10 @@
     th { background:#333; color:#ffd700; cursor:pointer; position:sticky; top:0; }
     tr:nth-child(even) { background:#242424; }
     tr:hover { background:#3a3a3a; }
-    .small { font-size:0.85em; color:#bbb; }
     .pos { color:#00ff00; font-weight:bold; }
     .neg { color:#ff4444; font-weight:bold; }
+    a { color:#66ccff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
@@ -22,7 +23,7 @@
     <thead>
       <tr>
         <th data-col="Name">Player</th>
-        <th data-col="DiscordTag">Discord</th>
+        <th data-col="AllyCode">SWGOH.gg</th>
         <th data-col="CharacterGP">Character GP</th>
         <th data-col="ShipGP">Ship GP</th>
         <th data-col="TotalGP">Total GP</th>
@@ -60,7 +61,7 @@ function renderComparison(oldText,newText) {
 
   const colMap = {
     Name: newer.header.indexOf("Name"),
-    DiscordTag: newer.header.indexOf("DiscordTag"),
+    AllyCode: newer.header.indexOf("AllyCode"),
     CharGP: newer.header.indexOf("CharacterGP"),
     ShipGP: newer.header.indexOf("ShipGP"),
     League: newer.header.indexOf("LeagueId"),
@@ -92,10 +93,13 @@ function renderComparison(oldText,newText) {
       netChange = `<span class="${diff>=0?'pos':'neg'}">${diff>=0?'+':''}${diff.toLocaleString()}</span>`;
     }
 
+    const allyCode = row[colMap.AllyCode];
+    const swgohLink = allyCode ? `<a href="https://swgoh.gg/p/${allyCode}/" target="_blank">${allyCode}</a>` : "";
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${row[colMap.Name]}</td>
-      <td class="small">${row[colMap.DiscordTag]}</td>
+      <td>${swgohLink}</td>
       <td>${Number(row[colMap.CharGP]).toLocaleString()}</td>
       <td>${Number(row[colMap.ShipGP]).toLocaleString()}</td>
       <td>${totalGP.toLocaleString()}</td>

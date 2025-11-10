@@ -11,9 +11,9 @@
     th { background:#333; color:#ffd700; cursor:pointer; position:sticky; top:0; }
     tr:nth-child(even) { background:#242424; }
     tr:hover { background:#3a3a3a; }
-    .pos { color:#00ff00; font-weight:bold; }
-    .neg { color:#ff4444; font-weight:bold; }
-    .zero { color:#bbb; font-weight:bold; }
+    .pos { color:#00ff00; font-weight:bold; }   /* green for positive */
+    .neg { color:#ff4444; font-weight:bold; }   /* red for negative */
+    .zero { color:#bbb; font-weight:bold; }     /* gray for zero */
     a { color:#66ccff; text-decoration:none; }
     a:hover { text-decoration:underline; }
   </style>
@@ -42,61 +42,24 @@
         <th data-col="ModScore">Mod Score</th>
         <th>Net Change (GP)</th>
         <th>Net Change (Total Score)</th>
+        <th>Net Change (Gear Score)</th>
+        <th>Net Change (Mod Score)</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
 <script>
-// Always compare these two files in the same directory as the page
-const FILES = ["ChewbootyOld.csv","Chewbooty.csv"];
+const FILES = ["ChewbootyOld.csv","Chewbooty.csv"]; // always compare these two
 
-// Robust CSV parser (handles quoted fields and commas inside quotes)
 function parseCSV(csvText) {
-  const rows = [];
-  let row = [];
-  let cell = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < csvText.length; i++) {
-    const char = csvText[i];
-    const next = csvText[i + 1];
-
-    if (char === '"' && inQuotes && next === '"') {
-      cell += '"'; // escaped quote
-      i++; // skip the next quote
-    } else if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      row.push(cell);
-      cell = '';
-    } else if ((char === '\n' || char === '\r') && !inQuotes) {
-      if (cell !== '' || row.length) {
-        row.push(cell);
-        rows.push(row);
-        row = [];
-        cell = '';
-      }
-      // handle \r\n by skipping the next \n
-      if (char === '\r' && next === '\n') i++;
-    } else {
-      cell += char;
-    }
-  }
-  // push last cell/row
-  if (cell !== '' || row.length) {
-    row.push(cell);
-    rows.push(row);
-  }
-
-  const header = rows[0].map(h => h.trim());
-  const data = rows.slice(1);
-  return { header, data };
+  const rows = csvText.trim().split(/\r?\n/).map(r => r.split(','));
+  return {header: rows[0], data: rows.slice(1)};
 }
 
 function indexMap(header) {
   const idx = {};
-  header.forEach((h, i) => { idx[h] = i; });
+  header.forEach((h,i)=>{ idx[h.trim()] = i; });
   return idx;
 }
 
@@ -105,9 +68,9 @@ function toNumber(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function sumSlice(row, startIdx, endIdx) {
-  if (startIdx < 0 || endIdx < 0) return 0;
-  return row.slice(startIdx, endIdx + 1).reduce((s, v) => s + toNumber(v), 0);
+function sumSlice(row,start,end) {
+  if (start<0 || end<0) return 0;
+  return row.slice(start,end+1).reduce((s,v)=>s+toNumber(v),0);
 }
 
 function linkForAlly(ally) {
@@ -116,18 +79,15 @@ function linkForAlly(ally) {
   return `<a href="https://swgoh.gg/p/${code}/" target="_blank" rel="noopener">${code}</a>`;
 }
 
-function formatDiff(diff, isScore=false) {
-  const sign = diff > 0 ? '+' : diff < 0 ? '' : '';
-  const cls = diff > 0 ? 'pos' : diff < 0 ? 'neg' : 'zero';
-  const val = isScore ? diff.toFixed(2) : diff.toLocaleString();
-  return `<span class="${cls}">${diff > 0 ? '+' : diff < 0 ? '' : ''}${val}</span>`;
+function formatDiff(diff,isScore=false) {
+  const cls = diff>0?'pos':diff<0?'neg':'zero';
+  const val = isScore?diff.toFixed(2):diff.toLocaleString();
+  return `<span class="${cls}">${diff>0?'+':''}${val}</span>`;
 }
 
-function findMatch(oldData, oldIdx, newRow, newIdx) {
-  // Prefer AllyCode match; fallback to Name
+function findMatch(oldData,oldIdx,newRow,newIdx) {
   const allyNew = newRow[newIdx['AllyCode']];
   let match = null;
-
   if (allyNew) {
     match = oldData.find(r => String(r[oldIdx['AllyCode']]).trim() === String(allyNew).trim());
   }
@@ -138,7 +98,7 @@ function findMatch(oldData, oldIdx, newRow, newIdx) {
   return match;
 }
 
-function renderComparison(oldText, newText) {
+function renderComparison(oldText,newText) {
   const oldParsed = parseCSV(oldText);
   const newParsed = parseCSV(newText);
 
@@ -153,26 +113,28 @@ function renderComparison(oldText, newText) {
     const shipGP = toNumber(row[newIdx['ShipGP']]);
     const totalGP = charGP + shipGP;
 
-    const relics = sumSlice(row, newIdx['Relic1Count'], newIdx['Relic9Count']);
-
+    const relics = sumSlice(row,newIdx['Relic1Count'],newIdx['Relic9Count']);
     const totalScoreNew = toNumber(row[newIdx['TotalScore']]);
-    const gearScoreNew = row[newIdx['GearScore']] ?? '';
-    const modScoreNew = row[newIdx['ModScore']] ?? '';
+    const gearScoreNew = toNumber(row[newIdx['GearScore']]);
+    const modScoreNew = toNumber(row[newIdx['ModScore']]);
 
-    const oldRow = findMatch(oldParsed.data, oldIdx, row, newIdx);
+    const oldRow = findMatch(oldParsed.data,oldIdx,row,newIdx);
 
-    // Net change defaults to 0 when no match found
-    let diffGP = 0;
-    let diffScore = 0;
-
+    let diffGP=0,diffScore=0,diffGear=0,diffMod=0;
     if (oldRow) {
       const oldCharGP = toNumber(oldRow[oldIdx['CharacterGP']]);
       const oldShipGP = toNumber(oldRow[oldIdx['ShipGP']]);
-      const oldTotalGP = oldCharGP + oldShipGP;
-      diffGP = totalGP - oldTotalGP;
+      const oldTotalGP = oldCharGP+oldShipGP;
+      diffGP = totalGP-oldTotalGP;
 
       const oldTotalScore = toNumber(oldRow[oldIdx['TotalScore']]);
-      diffScore = totalScoreNew - oldTotalScore;
+      diffScore = totalScoreNew-oldTotalScore;
+
+      const oldGearScore = toNumber(oldRow[oldIdx['GearScore']]);
+      diffGear = gearScoreNew-oldGearScore;
+
+      const oldModScore = toNumber(oldRow[oldIdx['ModScore']]);
+      diffMod = modScoreNew-oldModScore;
     }
 
     const tr = document.createElement("tr");
@@ -195,7 +157,9 @@ function renderComparison(oldText, newText) {
       <td>${gearScoreNew}</td>
       <td>${modScoreNew}</td>
       <td>${formatDiff(diffGP)}</td>
-      <td>${formatDiff(diffScore, true)}</td>
+      <td>${formatDiff(diffScore,true)}</td>
+      <td>${formatDiff(diffGear,true)}</td>
+      <td>${formatDiff(diffMod,true)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -205,39 +169,36 @@ function renderComparison(oldText, newText) {
 
 function makeSortable() {
   const headers = document.querySelectorAll("th[data-col]");
-  headers.forEach(th => {
-    th.onclick = () => {
-      const col = th.getAttribute("data-col");
+  headers.forEach(th=>{
+    th.onclick=()=>{
+      const col=th.getAttribute("data-col");
       sortTable(col);
     };
   });
 }
 
 function sortTable(col) {
-  const table = document.getElementById("guildTable");
-  const rows = Array.from(table.tBodies[0].rows);
-  const idx = Array.from(table.tHead.rows[0].cells).findIndex(c => c.getAttribute("data-col") === col);
-
-  rows.sort((a, b) => {
-    const rawA = a.cells[idx].innerText.trim();
-    const rawB = b.cells[idx].innerText.trim();
-    const cleanA = rawA.replace(/[,+]/g, "");
-    const cleanB = rawB.replace(/[,+]/g, "");
-    const numA = Number(cleanA);
-    const numB = Number(cleanB);
-    // If numeric, sort numerically, else lexicographically
+  const table=document.getElementById("guildTable");
+  const rows=Array.from(table.tBodies[0].rows);
+  const idx=Array.from(table.tHead.rows[0].cells).findIndex(c=>c.getAttribute("data-col")===col);
+  rows.sort((a,b)=>{
+    const rawA=a.cells[idx].innerText.trim();
+    const rawB=b.cells[idx].innerText.trim();
+    const cleanA=rawA.replace(/[,+]/g,"");
+    const cleanB=rawB.replace(/[,+]/g,"");
+    const numA=Number(cleanA);
+    const numB=Number(cleanB);
     if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
-      return numB - numA; // descending
+      return numB-numA; // descending numeric sort
     }
     return rawA.localeCompare(rawB);
   });
-
-  rows.forEach(r => table.tBodies[0].appendChild(r));
+  rows.forEach(r=>table.tBodies[0].appendChild(r));
 }
 
 // Fetch both files and render
 Promise.all(FILES.map(f => fetch(f).then(r => r.text())))
-  .then(([oldCSV, newCSV]) => renderComparison(oldCSV, newCSV))
+  .then(([oldCSV,newCSV]) => renderComparison(oldCSV,newCSV))
   .catch(err => {
     console.error("Error loading CSVs:", err);
   });

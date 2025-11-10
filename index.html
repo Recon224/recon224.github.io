@@ -45,9 +45,20 @@
 <script>
 const FILES = ["ChewbootyOld.csv", "Chewbooty.csv"]; // compare these two
 
-Promise.all(FILES.map(f => fetch(f).then(r => r.text())))
-  .then(([oldCSV, newCSV]) => renderComparison(oldCSV, newCSV))
-  .catch(err => console.error("Error loading CSV files:", err));
+Promise.all([
+  fetch('Chewbooty.csv').then(r => r.text()),
+  fetch('ChewbootyOld.csv').then(r => r.text())
+]).then(([newCSV, oldCSV]) => {
+  // Remove BOM and hidden characters
+  oldCSV = oldCSV.replace(/^\uFEFF/, '');
+  newCSV = newCSV.replace(/^\uFEFF/, '');
+  
+  const newData = Papa.parse(newCSV, { header: true }).data;
+  const oldData = Papa.parse(oldCSV, { header: true }).data;
+  
+  renderComparison(newData, oldData);
+});
+
 
 function parseCSV(csvText) {
   const rows = csvText.trim().split(/\r?\n/).map(r => r.split(','));

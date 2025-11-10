@@ -57,7 +57,8 @@ function parseCSV(csvText) {
   const rows = csvText.trim().split(/\r?\n/).map(r =>
     r.split(',').map(c => c.replace(/^"|"$/g,'').trim())
   );
-  return {header: rows[0], data: rows.slice(1)};
+  const header = rows[0].map(h => h.replace(/^"|"$/g,'').trim().replace(/^\uFEFF/, ''));
+  return {header, data: rows.slice(1)};
 }
 
 function formatDiff(diff,isScore=false) {
@@ -93,9 +94,9 @@ function renderComparison(oldText,newText) {
   newer.data.forEach(row => {
     const totalGP = (+row[colMap.CharGP]||0) + (+row[colMap.ShipGP]||0);
 
-    // match by AllyCode
-    const newCode = (row[colMap.AllyCode]||"").trim();
-    const oldRow = old.data.find(r => (r[old.header.indexOf("AllyCode")]||"").trim() === newCode);
+    // match by AllyCode (baseline = ChewbootyOld.csv)
+    const newCode = (row[colMap.AllyCode]||"").replace(/^"|"$/g,'').trim();
+    const oldRow = old.data.find(r => (r[old.header.indexOf("AllyCode")]||"").replace(/^"|"$/g,'').trim() === newCode);
 
     let netChangeGP = `<span class="zero">0</span>`;
     let netChangeScore = `<span class="zero">0</span>`;
@@ -150,13 +151,13 @@ function makeSortable() {
 }
 
 function sortTable(col) {
-  const table = document.getElementById("guildTable");
-  const rows = Array.from(table.tBodies[0].rows);
-  const idx = Array.from(table.tHead.rows[0].cells).findIndex(c=>c.getAttribute("data-col")===col);
+  const table=document.getElementById("guildTable");
+  const rows=Array.from(table.tBodies[0].rows);
+  const idx=Array.from(table.tHead.rows[0].cells).findIndex(c=>c.getAttribute("data-col")===col);
 
   rows.sort((a,b)=>{
-    const valA = a.cells[idx].innerText.replace(/,/g,"");
-    const valB = b.cells[idx].innerText.replace(/,/g,"");
+    const valA=a.cells[idx].innerText.replace(/,/g,"");
+    const valB=b.cells[idx].innerText.replace(/,/g,"");
     return Number(valB)-Number(valA);
   });
 

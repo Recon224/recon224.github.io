@@ -52,7 +52,9 @@ Promise.all(FILES.map(f => fetch(f).then(r=>r.text())))
   });
 
 function parseCSV(csvText) {
-  const rows = csvText.trim().split(/\r?\n/).map(r => r.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
+  const rows = csvText.trim().split(/\r?\n/).map(r =>
+    r.split(',').map(c => c.replace(/^"|"$/g,'').trim())
+  );
   return {header: rows[0], data: rows.slice(1)};
 }
 
@@ -85,7 +87,7 @@ function renderComparison(oldText,newText) {
     const relics = row.slice(colMap.RelicStart,colMap.RelicEnd+1)
                       .reduce((sum,v)=>sum+(+v||0),0);
 
-    // find matching player in old file by AllyCode
+    // match by AllyCode (baseline = ChewbootyOld.csv)
     const newCode = (row[colMap.AllyCode]||"").trim();
     const oldRow = old.data.find(r => (r[old.header.indexOf("AllyCode")]||"").trim() === newCode);
 

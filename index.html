@@ -1,31 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Chewbooty Guild Roster</title>
   <style>
     body { font-family: Arial, sans-serif; background:#1c1c1c; color:#f0f0f0; margin:20px; }
     h1 { text-align:center; color:#ffd700; }
     table { width:100%; border-collapse:collapse; margin-top:20px; background:#2a2a2a; }
-    th, td { border:1px solid #444; padding:6px 8px; text-align:center; }
+    th, td { border:1px solid #444; padding:6px 8px; text-align:center; vertical-align:middle; }
     th { background:#333; color:#ffd700; cursor:pointer; position:sticky; top:0; }
     tr:nth-child(even) { background:#242424; }
     tr:hover { background:#3a3a3a; }
     a { color:#66ccff; text-decoration:none; }
     a:hover { text-decoration:underline; }
-    .oldVal { color:#bbb; font-size:0.9em; }
-    .pos { color:#00ff00; font-weight:bold; }
-    .neg { color:#ff4444; font-weight:bold; }
-    .zero { color:#bbb; font-weight:bold; }
+    .oldVal { color:#bbb; font-size:0.9em; margin-left:6px; }
+    .pos { color:#00ff00; font-weight:bold; margin-left:6px; }
+    .neg { color:#ff4444; font-weight:bold; margin-left:6px; }
+    .zero { color:#bbb; font-weight:bold; margin-left:6px; }
+    /* small screens: wrap cells */
+    @media (max-width:900px) {
+      table { font-size:13px; }
+      th, td { padding:6px; }
+    }
   </style>
 </head>
 <body>
   <h1>Chewbooty Guild Roster</h1>
+
   <table id="guildTable">
     <thead>
       <tr>
-        <th data-col="Name">Player</th>
-        <th data-col="AllyCode">SWGOH.gg</th>
+        <th data-col="Name">Player (link)</th>
         <th data-col="CharacterGP">Character GP (old + Δ)</th>
         <th data-col="ShipGP">Ship GP (old + Δ)</th>
         <th data-col="TotalGP">Total GP (old + Δ)</th>
@@ -45,130 +50,186 @@
   </table>
 
 <script>
-const FILES = ["ChewbootyOld.csv","Chewbooty.csv"]; // baseline vs current
+/*
+  Behavior:
+  - Loads ChewbootyOld.csv (baseline) and Chewbooty.csv (current).
+  - Player name is the clickable SWGOH.gg link (uses AllyCode when present).
+  - Each numeric column displays: Current (Old) ± Difference.
+  - Mod/Gear/Total scores are shown rounded to two decimals.
+  - Differences colored: green positive, red negative, gray zero.
+  - Sorting: click headers (where data-col exists) for descending sort by current value.
+*/
 
-Promise.all(FILES.map(f => fetch(f).then(r=>r.text())))
-  .then(([oldCSV,newCSV]) => {
-    renderComparison(oldCSV,newCSV);
-  })
-  .catch(err => console.error("Error loading CSVs:", err));
+const FILES = ["ChewbootyOld.csv","Chewbooty.csv"]; // baseline, current
+
+Promise.all(FILES.map(f => fetch(f).then(r => {
+  if (!r.ok) throw new Error(`Failed to fetch ${f}: ${r.status}`);
+  return r.text();
+})))
+  .then(([oldCSV, newCSV]) => renderComparison(oldCSV, newCSV))
+  .catch(err => {
+    console.error("Error loading CSVs:", err);
+    const tbody = document.querySelector("#guildTable tbody");
+    tbody.innerHTML = `<tr><td colspan="14" style="color:#f88; text-align:center;">Error loading CSV files. Check console for details.</td></tr>`;
+  });
 
 function parseCSV(csvText) {
-  const rows = csvText.trim().split(/\r?\n/).map(r =>
-    r.split(',').map(c => c.replace(/^"|"$/g,'').trim())
-  );
-  const header = rows[0].map(h => h.replace(/^"|"$/g,'').trim().replace(/^\uFEFF/, ''));
-  return {header, data: rows.slice(1)};
+  // Basic robust parser that strips outer quotes and trims fields.
+  // Assumes simple CSV (no embedded newlines in quoted fields).
+  if (!csvText) return { header: [], data: [] };
+  const lines = csvText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(l => l.trim() !== "");
+  const rows = lines.map(line => {
+    // split while respecting quoted commas
+    const out = [];
+    let cur = "";
+    let inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      const next = line[i+1];
+      if (ch === '"' && inQuote && next === '"') { cur += '"'; i++; }
+      else if (ch === '"') { inQuote = !inQuote; }
+      else if (ch === ',' && !inQuote) { out.push(cur.trim()); cur = ""; }
+      else { cur += ch; }
+    }
+    out.push(cur.trim());
+    return out.map(c => c.replace(/^"|"$/g, "").trim());
+  });
+  const header = rows.length ? rows[0].map(h => h.replace(/^\uFEFF/, "").trim()) : [];
+  const data = rows.slice(1);
+  return { header, data };
 }
 
-function formatDiff(diff, isNumberFormatted = true) {
-  const cls = diff>0 ? 'pos' : diff<0 ? 'neg' : 'zero';
-  const val = isNumberFormatted ? Number(diff).toLocaleString() : diff;
-  const sign = diff>0 ? '+' : '';
+function formatDiff(diff, decimals = 0) {
+  const cls = diff > 0 ? "pos" : diff < 0 ? "neg" : "zero";
+  const val = typeof diff === "number"
+    ? (decimals > 0 ? diff.toFixed(decimals) : Number(diff).toLocaleString())
+    : diff;
+  const sign = (typeof diff === "number" && diff > 0) ? "+" : "";
   return `<span class="${cls}">${sign}${val}</span>`;
 }
 
-function renderComparison(oldText,newText) {
+function getIndexMap(header) {
+  const map = {};
+  header.forEach((h, i) => { map[h] = i; });
+  return map;
+}
+
+function renderComparison(oldText, newText) {
   const old = parseCSV(oldText);
   const newer = parseCSV(newText);
 
-  const colMap = {
-    Name: newer.header.indexOf("Name"),
-    AllyCode: newer.header.indexOf("AllyCode"),
-    CharGP: newer.header.indexOf("CharacterGP"),
-    ShipGP: newer.header.indexOf("ShipGP"),
-    League: newer.header.indexOf("LeagueId"),
-    Skill: newer.header.indexOf("SkillRating"),
-    ModScore: newer.header.indexOf("ModScore"),
-    GearScore: newer.header.indexOf("GearScore"),
-    TotalScore: newer.header.indexOf("TotalScore"),
-    Zetas: newer.header.indexOf("ZetaCount"),
-    Omis: newer.header.indexOf("OmiCount"),
-    Speed20: newer.header.indexOf("Speed20"),
-    Speed25: newer.header.indexOf("Speed25"),
-    UltGL: newer.header.indexOf("UltimateGLCount")
-  };
+  const newMap = getIndexMap(newer.header);
+  const oldMap = getIndexMap(old.header);
+
+  // required column names expected in CSVs
+  const expected = [
+    "Name","AllyCode","CharacterGP","ShipGP","LeagueId","SkillRating",
+    "ModScore","GearScore","TotalScore","ZetaCount","OmiCount",
+    "Speed20","Speed25","UltimateGLCount"
+  ];
+
+  // quick header check
+  const missing = expected.filter(k => !(k in newMap));
+  if (missing.length) {
+    console.warn("Missing columns in current CSV:", missing);
+    // still continue, missing will output blanks
+  }
 
   const tbody = document.querySelector("#guildTable tbody");
   tbody.innerHTML = "";
 
   newer.data.forEach(row => {
-    const newCode = (row[colMap.AllyCode]||"").replace(/^"|"$/g,'').trim();
-    const oldRow = old.data.find(r => (r[old.header.indexOf("AllyCode")]||"").replace(/^"|"$/g,'').trim() === newCode);
+    // normalize ally code for matching
+    const allyNewRaw = (row[newMap["AllyCode"]] || "").replace(/^"|"$/g, "").trim();
+    const allyNew = allyNewRaw;
 
-    const newCharGP = (+row[colMap.CharGP]||0);
-    const newShipGP = (+row[colMap.ShipGP]||0);
+    // find matching old row by AllyCode first, fallback to Name
+    let oldRow = null;
+    if (allyNew) {
+      oldRow = old.data.find(r => ((r[oldMap["AllyCode"]]||"") + "").replace(/^"|"$/g, "").trim() === allyNew);
+    }
+    if (!oldRow) {
+      const nameNew = (row[newMap["Name"]] || "").trim();
+      oldRow = old.data.find(r => ((r[oldMap["Name"]]||"") + "").trim() === nameNew);
+    }
+
+    // parse current values (fall back to 0 or empty)
+    const newCharGP = Number(row[newMap["CharacterGP"]] || 0);
+    const newShipGP = Number(row[newMap["ShipGP"]] || 0);
     const newTotalGP = newCharGP + newShipGP;
-    const newModScore = (+row[colMap.ModScore]||0);
-    const newGearScore = (+row[colMap.GearScore]||0);
-    const newTotalScore = (+row[colMap.TotalScore]||0);
+    const newModScore = Number(row[newMap["ModScore"]] || 0);
+    const newGearScore = Number(row[newMap["GearScore"]] || 0);
+    const newTotalScore = Number(row[newMap["TotalScore"]] || 0);
 
-    const oldCharGP = oldRow ? (+oldRow[old.header.indexOf("CharacterGP")]||0) : 0;
-    const oldShipGP = oldRow ? (+oldRow[old.header.indexOf("ShipGP")]||0) : 0;
+    // parse old values (if row missing, use 0)
+    const oldCharGP = oldRow ? Number(oldRow[oldMap["CharacterGP"]] || 0) : 0;
+    const oldShipGP = oldRow ? Number(oldRow[oldMap["ShipGP"]] || 0) : 0;
     const oldTotalGP = oldCharGP + oldShipGP;
-    const oldModScore = oldRow ? (+oldRow[old.header.indexOf("ModScore")]||0) : 0;
-    const oldGearScore = oldRow ? (+oldRow[old.header.indexOf("GearScore")]||0) : 0;
-    const oldTotalScore = oldRow ? (+oldRow[old.header.indexOf("TotalScore")]||0) : 0;
+    const oldModScore = oldRow ? Number(oldRow[oldMap["ModScore"]] || 0) : 0;
+    const oldGearScore = oldRow ? Number(oldRow[oldMap["GearScore"]] || 0) : 0;
+    const oldTotalScore = oldRow ? Number(oldRow[oldMap["TotalScore"]] || 0) : 0;
 
+    // diffs
     const diffCharGP = newCharGP - oldCharGP;
     const diffShipGP = newShipGP - oldShipGP;
     const diffTotalGP = newTotalGP - oldTotalGP;
-    const diffModScore = newModScore - oldModScore;
-    const diffGearScore = newGearScore - oldGearScore;
+    const diffMod = newModScore - oldModScore;
+    const diffGear = newGearScore - oldGearScore;
     const diffTotalScore = newTotalScore - oldTotalScore;
 
-    const allyCode = row[colMap.AllyCode];
-    const swgohLink = allyCode ? `<a href="https://swgoh.gg/p/${allyCode}/" target="_blank" rel="noopener">${allyCode}</a>` : "";
+    // player link using ally code if present, otherwise plain name
+    const playerName = (row[newMap["Name"]] || "").trim();
+    const playerLink = allyNew ? `<a href="https://swgoh.gg/p/${encodeURIComponent(allyNew)}/" target="_blank" rel="noopener noreferrer">${escapeHtml(playerName)}</a>` : escapeHtml(playerName);
 
+    // build row HTML
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${row[colMap.Name]}</td>
-      <td>${swgohLink}</td>
+      <td style="text-align:left">${playerLink}</td>
 
       <td>
         ${newCharGP.toLocaleString()}
         <span class="oldVal">(${oldCharGP.toLocaleString()})</span>
-        ${formatDiff(diffCharGP)}
+        ${formatDiff(diffCharGP, 0)}
       </td>
 
       <td>
         ${newShipGP.toLocaleString()}
         <span class="oldVal">(${oldShipGP.toLocaleString()})</span>
-        ${formatDiff(diffShipGP)}
+        ${formatDiff(diffShipGP, 0)}
       </td>
 
       <td>
         ${newTotalGP.toLocaleString()}
         <span class="oldVal">(${oldTotalGP.toLocaleString()})</span>
-        ${formatDiff(diffTotalGP)}
+        ${formatDiff(diffTotalGP, 0)}
       </td>
 
-      <td>${row[colMap.League]}</td>
-      <td>${row[colMap.Skill]}</td>
+      <td>${escapeHtml(row[newMap["LeagueId"]] || "")}</td>
+      <td>${escapeHtml(row[newMap["SkillRating"]] || "")}</td>
 
       <td>
-        ${newModScore}
-        <span class="oldVal">(${oldModScore})</span>
-        ${formatDiff(diffModScore, false)}
-      </td>
-
-      <td>
-        ${newGearScore}
-        <span class="oldVal">(${oldGearScore})</span>
-        ${formatDiff(diffGearScore, false)}
+        ${newModScore.toFixed(2)}
+        <span class="oldVal">(${oldModScore.toFixed(2)})</span>
+        ${formatDiff(diffMod, 2)}
       </td>
 
       <td>
-        ${newTotalScore}
-        <span class="oldVal">(${oldTotalScore})</span>
-        ${formatDiff(diffTotalScore, false)}
+        ${newGearScore.toFixed(2)}
+        <span class="oldVal">(${oldGearScore.toFixed(2)})</span>
+        ${formatDiff(diffGear, 2)}
       </td>
 
-      <td>${row[colMap.Zetas]}</td>
-      <td>${row[colMap.Omis]}</td>
-      <td>${row[colMap.Speed20]}</td>
-      <td>${row[colMap.Speed25]}</td>
-      <td>${row[colMap.UltGL]}</td>
+      <td>
+        ${newTotalScore.toFixed(2)}
+        <span class="oldVal">(${oldTotalScore.toFixed(2)})</span>
+        ${formatDiff(diffTotalScore, 2)}
+      </td>
+
+      <td>${escapeHtml(row[newMap["ZetaCount"]] || "")}</td>
+      <td>${escapeHtml(row[newMap["OmiCount"]] || "")}</td>
+      <td>${escapeHtml(row[newMap["Speed20"]] || "")}</td>
+      <td>${escapeHtml(row[newMap["Speed25"]] || "")}</td>
+      <td>${escapeHtml(row[newMap["UltimateGLCount"]] || "")}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -179,9 +240,12 @@ function renderComparison(oldText,newText) {
 function makeSortable() {
   const headers = document.querySelectorAll("th[data-col]");
   headers.forEach(th => {
+    th.style.userSelect = "none";
     th.onclick = () => {
       const col = th.getAttribute("data-col");
       sortTable(col);
+      // simple visual indicator toggle
+      headers.forEach(h => h.style.opacity = h === th ? "1" : "0.85");
     };
   });
 }
@@ -189,18 +253,32 @@ function makeSortable() {
 function sortTable(col) {
   const table = document.getElementById("guildTable");
   const rows = Array.from(table.tBodies[0].rows);
-  const idx = Array.from(table.tHead.rows[0].cells).findIndex(c=>c.getAttribute("data-col")===col);
+  const headerCells = Array.from(table.tHead.rows[0].cells);
+  const idx = headerCells.findIndex(c => c.getAttribute("data-col") === col);
+  if (idx === -1) return;
 
-  rows.sort((a,b)=>{
-    // Strip commas and plus sign for numeric comparison
-    const valA = a.cells[idx].innerText.replace(/[,+]/g,"").match(/-?\d+(\.\d+)?/g);
-    const valB = b.cells[idx].innerText.replace(/[,+]/g,"").match(/-?\d+(\.\d+)?/g);
-    const numA = valA ? Number(valA[0]) : 0; // sort by current value
-    const numB = valB ? Number(valB[0]) : 0;
-    return numB - numA; // descending
+  rows.sort((a, b) => {
+    // extract leading numeric value from cell (current value)
+    const numA = extractLeadingNumber(a.cells[idx].innerText);
+    const numB = extractLeadingNumber(b.cells[idx].innerText);
+    // Descending by default
+    return numB - numA;
   });
 
-  rows.forEach(r=>table.tBodies[0].appendChild(r));
+  rows.forEach(r => table.tBodies[0].appendChild(r));
+}
+
+// helpers
+function extractLeadingNumber(text) {
+  if (!text) return 0;
+  // match first number (could be int or float, possibly with comma separators)
+  const m = text.replace(/[,+]/g, "").match(/-?\d+(\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+function escapeHtml(str) {
+  if (typeof str !== "string") return "";
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 </script>
 </body>

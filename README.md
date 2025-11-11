@@ -1,6 +1,6 @@
 Small swgoh website that compares the csv files to provide guild users with relevant data to track monthly progress.
 
-The index.html is built to pull data from the new .csv (Chewbooty.csv) and compare it with the prior month's .csv (ChewbootyOld.csv). Increases/decreases in relevant data is represent by positive or negative numbers (green/red) in the spreadsheet.
+The index.html is built to pull data from the new .csv (Chewbooty.csv) and compare it with the prior month's .csv (ChewbootyOld.csv). Increases/decreases in relevant data is represented by positive or negative numbers (green/red) in the spreadsheet.
 
 Steps to install:
 

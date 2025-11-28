@@ -17,7 +17,6 @@
     .pos { color:#00ff00; font-weight:bold; margin-left:6px; }
     .neg { color:#ff4444; font-weight:bold; margin-left:6px; }
     .zero { color:#bbb; font-weight:bold; margin-left:6px; }
-    /* small screens: wrap cells */
     @media (max-width:900px) {
       table { font-size:13px; }
       th, td { padding:6px; }
@@ -50,17 +49,7 @@
   </table>
 
 <script>
-/*
-  Behavior:
-  - Loads ChewbootyOld.csv (baseline) and Chewbooty.csv (current).
-  - Player name is the clickable SWGOH.gg link (uses AllyCode when present).
-  - Each numeric column displays: Current (Old) ± Difference.
-  - Mod/Gear/Total scores are shown rounded to two decimals.
-  - Differences colored: green positive, red negative, gray zero.
-  - Sorting: click headers (where data-col exists) for descending sort by current value.
-*/
-
-const FILES = ["ChewbootyOld.csv","Chewbooty.csv"]; // baseline, current
+const FILES = ["ChewbootyOld.csv","Chewbooty.csv"];
 
 Promise.all(FILES.map(f => fetch(f).then(r => {
   if (!r.ok) throw new Error(`Failed to fetch ${f}: ${r.status}`);
@@ -74,18 +63,13 @@ Promise.all(FILES.map(f => fetch(f).then(r => {
   });
 
 function parseCSV(csvText) {
-  // Basic robust parser that strips outer quotes and trims fields.
-  // Assumes simple CSV (no embedded newlines in quoted fields).
   if (!csvText) return { header: [], data: [] };
   const lines = csvText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(l => l.trim() !== "");
   const rows = lines.map(line => {
-    // split while respecting quoted commas
     const out = [];
-    let cur = "";
-    let inQuote = false;
+    let cur = "", inQuote = false;
     for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      const next = line[i+1];
+      const ch = line[i], next = line[i+1];
       if (ch === '"' && inQuote && next === '"') { cur += '"'; i++; }
       else if (ch === '"') { inQuote = !inQuote; }
       else if (ch === ',' && !inQuote) { out.push(cur.trim()); cur = ""; }
@@ -121,84 +105,81 @@ function renderComparison(oldText, newText) {
   const newMap = getIndexMap(newer.header);
   const oldMap = getIndexMap(old.header);
 
-  // required column names expected in CSVs
-  const expected = [
-    "Name","AllyCode","CharacterGP","ShipGP","LeagueId","SkillRating",
-    "ModScore","GearScore","TotalScore","ZetaCount","OmiCount",
-    "Speed20","Speed25","UltimateGLCount"
-  ];
-
-  // quick header check
-  const missing = expected.filter(k => !(k in newMap));
-  if (missing.length) {
-    console.warn("Missing columns in current CSV:", missing);
-    // still continue, missing will output blanks
-  }
-
   const tbody = document.querySelector("#guildTable tbody");
   tbody.innerHTML = "";
 
   newer.data.forEach(row => {
-    // normalize ally code for matching
-    const allyNewRaw = (row[newMap["AllyCode"]] || "").replace(/^"|"$/g, "").trim();
-    const allyNew = allyNewRaw;
-
-    // find matching old row by AllyCode first, fallback to Name
+    const allyNew = (row[newMap["AllyCode"]] || "").trim();
     let oldRow = null;
     if (allyNew) {
-      oldRow = old.data.find(r => ((r[oldMap["AllyCode"]]||"") + "").replace(/^"|"$/g, "").trim() === allyNew);
+      oldRow = old.data.find(r => (r[oldMap["AllyCode"]]||"").trim() === allyNew);
     }
     if (!oldRow) {
       const nameNew = (row[newMap["Name"]] || "").trim();
-      oldRow = old.data.find(r => ((r[oldMap["Name"]]||"") + "").trim() === nameNew);
+      oldRow = old.data.find(r => (r[oldMap["Name"]]||"").trim() === nameNew);
     }
 
-    // parse current values (fall back to 0 or empty)
+    // current values
     const newCharGP = Number(row[newMap["CharacterGP"]] || 0);
     const newShipGP = Number(row[newMap["ShipGP"]] || 0);
     const newTotalGP = newCharGP + newShipGP;
     const newModScore = Number(row[newMap["ModScore"]] || 0);
     const newGearScore = Number(row[newMap["GearScore"]] || 0);
     const newTotalScore = Number(row[newMap["TotalScore"]] || 0);
+    const newZetas = Number(row[newMap["ZetaCount"]] || 0);
+    const newOmis = Number(row[newMap["OmiCount"]] || 0);
+    const newSpeed20 = Number(row[newMap["Speed20"]] || 0);
+    const newSpeed25 = Number(row[newMap["Speed25"]] || 0);
+    const newGLs = Number(row[newMap["UltimateGLCount"]] || 0);
 
-    // parse old values (if row missing, use 0)
+    // old values
     const oldCharGP = oldRow ? Number(oldRow[oldMap["CharacterGP"]] || 0) : 0;
     const oldShipGP = oldRow ? Number(oldRow[oldMap["ShipGP"]] || 0) : 0;
     const oldTotalGP = oldCharGP + oldShipGP;
     const oldModScore = oldRow ? Number(oldRow[oldMap["ModScore"]] || 0) : 0;
     const oldGearScore = oldRow ? Number(oldRow[oldMap["GearScore"]] || 0) : 0;
     const oldTotalScore = oldRow ? Number(oldRow[oldMap["TotalScore"]] || 0) : 0;
+    const oldZetas = oldRow ? Number(oldRow[oldMap["ZetaCount"]] || 0) : 0;
+    const oldOmis = oldRow ? Number(oldRow[oldMap["OmiCount"]] || 0) : 0;
+    const oldSpeed20 = oldRow ? Number(oldRow[oldMap["Speed20"]] || 0) : 0;
+    const oldSpeed25 = oldRow ? Number(oldRow[oldMap["Speed25"]] || 0) : 0;
+    const oldGLs = oldRow ? Number(oldRow[oldMap["UltimateGLCount"]] || 0) : 0;
 
-    // diffs
+    // differences
     const diffCharGP = newCharGP - oldCharGP;
     const diffShipGP = newShipGP - oldShipGP;
     const diffTotalGP = newTotalGP - oldTotalGP;
     const diffMod = newModScore - oldModScore;
     const diffGear = newGearScore - oldGearScore;
     const diffTotalScore = newTotalScore - oldTotalScore;
+    const diffZetas = newZetas - oldZetas;
+    const diffOmis = newOmis - oldOmis;
+    const diffSpeed20 = newSpeed20 - oldSpeed20;
+    const diffSpeed25 = newSpeed25 - oldSpeed25;
+    const diffGLs = newGLs - oldGLs;
 
-    // player link using ally code if present, otherwise plain name
     const playerName = (row[newMap["Name"]] || "").trim();
-    const playerLink = allyNew ? `<a href="https://swgoh.gg/p/${encodeURIComponent(allyNew)}/" target="_blank" rel="noopener noreferrer">${escapeHtml(playerName)}</a>` : escapeHtml(playerName);
+    const playerLink = allyNew
+      ? `<a href="https://swgoh.gg/p/${encodeURIComponent(allyNew)}/" target="_blank" rel="noopener noreferrer">${escapeHtml(playerName)}</a>`
+      : escapeHtml(playerName);
 
-    // build row HTML
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td style="text-align:left">${playerLink}</td>
 
-      <td>
+      <td data-cur="${newCharGP}" data-diff="${diffCharGP}">
         ${newCharGP.toLocaleString()}
         <span class="oldVal">(${oldCharGP.toLocaleString()})</span>
         ${formatDiff(diffCharGP, 0)}
       </td>
 
-      <td>
+      <td data-cur="${newShipGP}" data-diff="${diffShipGP}">
         ${newShipGP.toLocaleString()}
         <span class="oldVal">(${oldShipGP.toLocaleString()})</span>
         ${formatDiff(diffShipGP, 0)}
       </td>
 
-      <td>
+      <td data-cur="${newTotalGP}" data-diff="${diffTotalGP}">
         ${newTotalGP.toLocaleString()}
         <span class="oldVal">(${oldTotalGP.toLocaleString()})</span>
         ${formatDiff(diffTotalGP, 0)}
@@ -207,34 +188,59 @@ function renderComparison(oldText, newText) {
       <td>${escapeHtml(row[newMap["LeagueId"]] || "")}</td>
       <td>${escapeHtml(row[newMap["SkillRating"]] || "")}</td>
 
-      <td>
+      <td data-cur="${newModScore.toFixed(2)}">
         ${newModScore.toFixed(2)}
         <span class="oldVal">(${oldModScore.toFixed(2)})</span>
         ${formatDiff(diffMod, 2)}
       </td>
 
-      <td>
+      <td data-cur="${newGearScore.toFixed(2)}">
         ${newGearScore.toFixed(2)}
         <span class="oldVal">(${oldGearScore.toFixed(2)})</span>
         ${formatDiff(diffGear, 2)}
       </td>
 
-      <td>
+      <td data-cur="${newTotalScore.toFixed(2)}">
         ${newTotalScore.toFixed(2)}
         <span class="oldVal">(${oldTotalScore.toFixed(2)})</span>
         ${formatDiff(diffTotalScore, 2)}
       </td>
 
-      <td>${escapeHtml(row[newMap["ZetaCount"]] || "")}</td>
-      <td>${escapeHtml(row[newMap["OmiCount"]] || "")}</td>
-      <td>${escapeHtml(row[newMap["Speed20"]] || "")}</td>
-      <td>${escapeHtml(row[newMap["Speed25"]] || "")}</td>
-      <td>${escapeHtml(row[newMap["UltimateGLCount"]] || "")}</td>
+      <td>
+        ${newZetas}
+        <span class="oldVal">(${oldZetas})</span>
+        ${formatDiff(diffZetas, 0)}
+      </td>
+
+      <td>
+        ${newOmis}
+        <span class="oldVal">(${oldOmis})</span>
+        ${formatDiff(diffOmis, 0)}
+      </td>
+
+      <td>
+        ${newSpeed20}
+        <span class="oldVal">(${oldSpeed20})</span>
+        ${formatDiff(diffSpeed20, 0)}
+      </td>
+
+      <td>
+        ${newSpeed25}
+        <span class="oldVal">(${oldSpeed25})</span>
+        ${formatDiff(diffSpeed25, 0)}
+      </td>
+
+      <td>
+        ${newGLs}
+        <span class="oldVal">(${oldGLs})</span>
+        ${formatDiff(diffGLs, 0)}
+      </td>
     `;
     tbody.appendChild(tr);
   });
 
   makeSortable();
+  addTopThreeEmojis();
 }
 
 function makeSortable() {
@@ -244,7 +250,6 @@ function makeSortable() {
     th.onclick = () => {
       const col = th.getAttribute("data-col");
       sortTable(col);
-      // simple visual indicator toggle
       headers.forEach(h => h.style.opacity = h === th ? "1" : "0.85");
     };
   });
@@ -258,20 +263,61 @@ function sortTable(col) {
   if (idx === -1) return;
 
   rows.sort((a, b) => {
-    // extract leading numeric value from cell (current value)
     const numA = extractLeadingNumber(a.cells[idx].innerText);
     const numB = extractLeadingNumber(b.cells[idx].innerText);
-    // Descending by default
-    return numB - numA;
+    return numB - numA; // Descending
   });
 
   rows.forEach(r => table.tBodies[0].appendChild(r));
 }
 
+// Rank and decorate top 3 with emojis
+function addTopThreeEmojis() {
+  const table = document.getElementById("guildTable");
+  const rows = Array.from(table.tBodies[0].rows);
+  const emojis = ["🥇","🥈","🥉"];
+
+  // Column indices (by header order)
+  const COLS = {
+    CharacterGP: 1,
+    ShipGP: 2,
+    TotalGP: 3,
+    ModScore: 6,
+    GearScore: 7,
+    TotalScore: 8
+  };
+
+  // Rank GP columns by change (diff), add emoji next to current score
+  ["CharacterGP", "ShipGP", "TotalGP"].forEach(key => {
+    const idx = COLS[key];
+    const ranked = rows.map(r => {
+      const cell = r.cells[idx];
+      const diff = Number(cell.getAttribute("data-diff") || 0);
+      return { cell, value: diff };
+    }).sort((a, b) => b.value - a.value);
+    ranked.slice(0, 3).forEach((entry, rank) => {
+      entry.cell.innerHTML = entry.cell.innerHTML + " " + emojis[rank];
+    });
+  });
+
+  // Rank Mod/Gear/TotalScore by current score, add emoji next to current score
+  ["ModScore", "GearScore", "TotalScore"].forEach(key => {
+    const idx = COLS[key];
+    const ranked = rows.map(r => {
+      const cell = r.cells[idx];
+      const cur = Number(cell.getAttribute("data-cur") || 0);
+      return { cell, value: cur };
+    }).sort((a, b) => b.value - a.value);
+    ranked.slice(0, 3).forEach((entry, rank) => {
+      entry.cell.innerHTML = entry.cell.innerHTML + " " + emojis[rank];
+    });
+  });
+}
+
 // helpers
 function extractLeadingNumber(text) {
   if (!text) return 0;
-  // match first number (could be int or float, possibly with comma separators)
+  // remove commas and plus signs, then take first number
   const m = text.replace(/[,+]/g, "").match(/-?\d+(\.\d+)?/);
   return m ? Number(m[0]) : 0;
 }

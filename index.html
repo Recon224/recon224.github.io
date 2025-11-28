@@ -4,65 +4,116 @@
   <meta charset="UTF-8" />
   <title>Chewbooty Roster</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#1c1c1c; color:#f0f0f0; margin:20px; }
-    h1 { text-align:center; color:#ffd700; margin-top:8px; }
-    /* Winners panel top-left */
-    .winners-panel {
-      position:fixed;
-      top:20px;
-      left:20px;
-      width:260px;
-      background:linear-gradient(180deg,#2b2b2b,#232323);
-      border:1px solid #444;
-      padding:10px;
-      border-radius:8px;
-      box-shadow:0 6px 18px rgba(0,0,0,0.6);
-      z-index:1000;
-      color:#f0f0f0;
+    :root {
+      --bg:#1c1c1c;
+      --panel:#2b2b2b;
+      --panel-2:#232323;
+      --muted:#bbb;
+      --accent:#ffd700;
+      --green:#00ff00;
+      --red:#ff4444;
+      --link:#66ccff;
     }
-    .winners-panel h3 { margin:4px 0 8px 0; font-size:14px; color:#ffd700; text-align:left; }
-    .category { margin-bottom:8px; font-size:13px; }
-    .category .title { color:#ccc; display:block; margin-bottom:6px; font-weight:600; }
-    .medal-row { display:flex; align-items:center; gap:8px; margin:2px 0; }
-    .medal-emoji { width:22px; text-align:center; font-size:16px; }
-    .medal-name { flex:1; color:#e8e8e8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .medal-value { color:#bbb; font-size:12px; margin-left:6px; }
+
+    body { font-family: Arial, sans-serif; background:var(--bg); color:#f0f0f0; margin:20px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
+    h1 { margin:0; color:var(--accent); font-size:20px; text-align:left; }
+
+    /* Inline winners strip (integrated into page, not fixed) */
+    .winners-strip {
+      display:flex;
+      gap:12px;
+      align-items:stretch;
+      background:linear-gradient(180deg,var(--panel),var(--panel-2));
+      border:1px solid #444;
+      padding:8px;
+      border-radius:8px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.45);
+      color:#f0f0f0;
+      min-width:0;
+      flex:1 1 420px;
+    }
+    .winners-col {
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+      flex:1;
+    }
+    .winners-title { color:var(--accent); font-size:13px; margin:0 0 4px 0; }
+    .winner-row {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      background:rgba(255,255,255,0.02);
+      padding:6px 8px;
+      border-radius:6px;
+      font-size:13px;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+    .medal { width:22px; text-align:center; font-size:16px; }
+    .winner-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e8e8e8; }
+    .winner-val { color:var(--muted); font-size:12px; margin-left:6px; }
+
+    /* collapse control */
+    .winners-controls { display:flex; align-items:center; gap:8px; }
+    .toggle-btn {
+      background:transparent;
+      border:1px solid #444;
+      color:#f0f0f0;
+      padding:6px 8px;
+      border-radius:6px;
+      cursor:pointer;
+      font-size:13px;
+    }
+
     /* Table */
-    table { width:100%; border-collapse:collapse; margin-top:20px; background:#2a2a2a; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; background:#2a2a2a; }
     th, td { border:1px solid #444; padding:6px 8px; text-align:center; vertical-align:middle; }
-    th { background:#333; color:#ffd700; cursor:pointer; position:sticky; top:0; }
+    th { background:#333; color:var(--accent); cursor:pointer; position:sticky; top:0; z-index:2; }
     tr:nth-child(even) { background:#242424; }
     tr:hover { background:#3a3a3a; }
-    a { color:#66ccff; text-decoration:none; }
+    a { color:var(--link); text-decoration:none; }
     a:hover { text-decoration:underline; }
-    .oldVal { color:#bbb; font-size:0.9em; margin-left:6px; }
-    .pos { color:#00ff00; font-weight:bold; margin-left:6px; }
-    .neg { color:#ff4444; font-weight:bold; margin-left:6px; }
-    .zero { color:#bbb; font-weight:bold; margin-left:6px; }
+    .oldVal { color:var(--muted); font-size:0.9em; margin-left:6px; }
+    .pos { color:var(--green); font-weight:bold; margin-left:6px; }
+    .neg { color:var(--red); font-weight:bold; margin-left:6px; }
+    .zero { color:var(--muted); font-weight:bold; margin-left:6px; }
+
     @media (max-width:900px) {
       table { font-size:13px; }
       th, td { padding:6px; }
-      .winners-panel { width:200px; top:12px; left:12px; padding:8px; }
+      header { flex-direction:column; align-items:flex-start; gap:8px; }
+      .winners-strip { flex-direction:column; gap:8px; width:100%; }
     }
   </style>
 </head>
 <body>
-  <!-- Winners panel (top-left) -->
-  <div id="winnersPanel" class="winners-panel" aria-live="polite">
-    <h3>Recent Growth Winners</h3>
-    <div id="winnersContent">
-      <div class="category" id="gpGrowth">
-        <span class="title">Total GP Growth</span>
-        <div class="medal-row"><span class="medal-emoji">—</span><span class="medal-name">No data</span><span class="medal-value"></span></div>
+  <header>
+    <h1>Chewbooty Guild Roster</h1>
+
+    <!-- Integrated winners strip: inline, non-blocking, collapsible -->
+    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+      <div id="winnersContainer" class="winners-strip" aria-live="polite">
+        <div class="winners-col" id="gpGrowth">
+          <div class="winners-title">Total GP Growth</div>
+          <!-- placeholder rows; JS will populate -->
+          <div class="winner-row"><div class="medal">—</div><div class="winner-name">No positive growth</div><div class="winner-val"></div></div>
+        </div>
+
+        <div class="winners-col" id="scoreGrowth">
+          <div class="winners-title">Total Score Growth</div>
+          <div class="winner-row"><div class="medal">—</div><div class="winner-name">No positive growth</div><div class="winner-val"></div></div>
+        </div>
       </div>
-      <div class="category" id="scoreGrowth">
-        <span class="title">Total Score Growth</span>
-        <div class="medal-row"><span class="medal-emoji">—</span><span class="medal-name">No data</span><span class="medal-value"></span></div>
+
+      <div class="winners-controls">
+        <button id="toggleWinners" class="toggle-btn" aria-expanded="true" aria-controls="winnersContainer">Hide winners</button>
       </div>
     </div>
-  </div>
-
-  <h1>Chewbooty Guild Roster</h1>
+  </header>
 
   <table id="guildTable">
     <thead>
@@ -281,7 +332,7 @@ function renderComparison(oldText, newText) {
 
   makeSortable();
   addTopThreeEmojis();
-  renderWinnersPanel(); // update the top-left graphic
+  renderWinnersStrip(); // populate inline winners strip
 }
 
 function makeSortable() {
@@ -324,6 +375,16 @@ function addTopThreeEmojis() {
   const TOTAL_GP_IDX = 3;
   const TOTAL_SCORE_IDX = 8;
 
+  // Clear any previous emojis in those columns first (to avoid duplicates on re-render)
+  rows.forEach(r => {
+    [TOTAL_GP_IDX, TOTAL_SCORE_IDX].forEach(idx => {
+      const cell = r.cells[idx];
+      if (cell) {
+        cell.innerHTML = cell.innerHTML.replace(/ 🥇| 🥈| 🥉/g, "");
+      }
+    });
+  });
+
   // Helper to award emojis based on diff, only for positive diffs
   function awardByDiff(idx) {
     const ranked = rows.map(r => {
@@ -342,32 +403,20 @@ function addTopThreeEmojis() {
       }
     });
 
-    return ranked.slice(0, 3); // return top entries for panel rendering
+    return ranked.slice(0, 3); // return top entries for strip rendering
   }
 
-  // Clear any previous emojis in those columns first (to avoid duplicates on re-render)
-  rows.forEach(r => {
-    [TOTAL_GP_IDX, TOTAL_SCORE_IDX].forEach(idx => {
-      const cell = r.cells[idx];
-      if (cell) {
-        // remove medal emojis if present (simple replace)
-        cell.innerHTML = cell.innerHTML.replace(/ 🥇| 🥈| 🥉/g, "");
-      }
-    });
-  });
-
-  // Award and capture winners
   const gpWinners = awardByDiff(TOTAL_GP_IDX);
   const scoreWinners = awardByDiff(TOTAL_SCORE_IDX);
 
-  // Save winners data on the table element for the winners panel to read
+  // Save winners data on the table element for the winners strip to read
   const tableEl = document.getElementById("guildTable");
   tableEl._gpWinners = gpWinners;
   tableEl._scoreWinners = scoreWinners;
 }
 
-// Render the small graphic at top-left listing medal winners for the two categories
-function renderWinnersPanel() {
+// Render the inline winners strip (integrated into page)
+function renderWinnersStrip() {
   const tableEl = document.getElementById("guildTable");
   const gpWinners = tableEl._gpWinners || [];
   const scoreWinners = tableEl._scoreWinners || [];
@@ -375,23 +424,25 @@ function renderWinnersPanel() {
   const gpContainer = document.getElementById("gpGrowth");
   const scoreContainer = document.getElementById("scoreGrowth");
 
+  // clear existing rows (keep title)
+  gpContainer.querySelectorAll(".winner-row").forEach(n => n.remove());
+  scoreContainer.querySelectorAll(".winner-row").forEach(n => n.remove());
+
   function renderCategory(container, winners, valueLabel) {
-    // clear existing rows
-    container.querySelectorAll(".medal-row").forEach(n => n.remove());
     if (!winners.length) {
       const row = document.createElement("div");
-      row.className = "medal-row";
-      row.innerHTML = `<span class="medal-emoji">—</span><span class="medal-name">No positive growth</span><span class="medal-value"></span>`;
+      row.className = "winner-row";
+      row.innerHTML = `<div class="medal">—</div><div class="winner-name">No positive growth</div><div class="winner-val"></div>`;
       container.appendChild(row);
       return;
     }
     winners.forEach((w, i) => {
       const row = document.createElement("div");
-      row.className = "medal-row";
+      row.className = "winner-row";
       const emoji = i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉";
       const nameText = (w.name || "").trim() || "Unknown";
       const valueText = (typeof w.diff === "number") ? (w.diff > 0 ? `+${Number(w.diff).toLocaleString()}` : `${Number(w.diff).toLocaleString()}`) : "";
-      row.innerHTML = `<span class="medal-emoji">${emoji}</span><span class="medal-name" title="${escapeHtml(nameText)}">${escapeHtml(nameText)}</span><span class="medal-value">${escapeHtml(valueText)}</span>`;
+      row.innerHTML = `<div class="medal">${emoji}</div><div class="winner-name" title="${escapeHtml(nameText)}">${escapeHtml(nameText)}</div><div class="winner-val">${escapeHtml(valueText)}</div>`;
       container.appendChild(row);
     });
   }
@@ -399,6 +450,34 @@ function renderWinnersPanel() {
   renderCategory(gpContainer, gpWinners, "GP");
   renderCategory(scoreContainer, scoreWinners, "Score");
 }
+
+// Toggle winners strip visibility (integrated, non-blocking)
+document.addEventListener("click", (e) => {
+  const btn = document.getElementById("toggleWinners");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const container = document.getElementById("winnersContainer");
+    if (!container) return;
+    const isHidden = container.style.display === "none";
+    container.style.display = isHidden ? "flex" : "none";
+    btn.textContent = isHidden ? "Hide winners" : "Show winners";
+    btn.setAttribute("aria-expanded", String(isHidden));
+  }, { once: true });
+  // The above attaches the handler once on first click event dispatch; ensure handler exists immediately:
+}, { once: true });
+
+// Attach handler immediately (safer)
+(function attachToggle() {
+  const btn = document.getElementById("toggleWinners");
+  const container = document.getElementById("winnersContainer");
+  if (!btn || !container) return;
+  btn.addEventListener("click", () => {
+    const isHidden = container.style.display === "none";
+    container.style.display = isHidden ? "flex" : "none";
+    btn.textContent = isHidden ? "Hide winners" : "Show winners";
+    btn.setAttribute("aria-expanded", String(isHidden));
+  });
+})();
 
 // helpers
 function extractLeadingNumber(text) {

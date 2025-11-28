@@ -188,19 +188,19 @@ function renderComparison(oldText, newText) {
       <td>${escapeHtml(row[newMap["LeagueId"]] || "")}</td>
       <td>${escapeHtml(row[newMap["SkillRating"]] || "")}</td>
 
-      <td data-cur="${newModScore.toFixed(2)}">
+      <td data-cur="${newModScore.toFixed(2)}" data-diff="${diffMod}">
         ${newModScore.toFixed(2)}
         <span class="oldVal">(${oldModScore.toFixed(2)})</span>
         ${formatDiff(diffMod, 2)}
       </td>
 
-      <td data-cur="${newGearScore.toFixed(2)}">
+      <td data-cur="${newGearScore.toFixed(2)}" data-diff="${diffGear}">
         ${newGearScore.toFixed(2)}
         <span class="oldVal">(${oldGearScore.toFixed(2)})</span>
         ${formatDiff(diffGear, 2)}
       </td>
 
-      <td data-cur="${newTotalScore.toFixed(2)}">
+      <td data-cur="${newTotalScore.toFixed(2)}" data-diff="${diffTotalScore}">
         ${newTotalScore.toFixed(2)}
         <span class="oldVal">(${oldTotalScore.toFixed(2)})</span>
         ${formatDiff(diffTotalScore, 2)}
@@ -278,46 +278,39 @@ function addTopThreeEmojis() {
   const emojis = ["🥇","🥈","🥉"];
 
   // Column indices (by header order)
-  const COLS = {
-    CharacterGP: 1,
-    ShipGP: 2,
-    TotalGP: 3,
-    ModScore: 6,
-    GearScore: 7,
-    TotalScore: 8
-  };
+  // 0: Name, 1: CharacterGP, 2: ShipGP, 3: TotalGP, 4: League, 5: SkillRating,
+  // 6: ModScore, 7: GearScore, 8: TotalScore, 9: Zeta, 10: Omi, 11: Speed20, 12: Speed25, 13: GL
+  const TOTAL_GP_IDX = 3;
+  const TOTAL_SCORE_IDX = 8;
 
-  // Rank GP columns by change (diff), add emoji next to current score
-  ["CharacterGP", "ShipGP", "TotalGP"].forEach(key => {
-    const idx = COLS[key];
+  // Helper to award emojis based on diff, only for positive diffs
+  function awardByDiff(idx) {
     const ranked = rows.map(r => {
       const cell = r.cells[idx];
       const diff = Number(cell.getAttribute("data-diff") || 0);
-      return { cell, value: diff };
-    }).sort((a, b) => b.value - a.value);
-    ranked.slice(0, 3).forEach((entry, rank) => {
-      entry.cell.innerHTML = entry.cell.innerHTML + " " + emojis[rank];
-    });
-  });
+      return { cell, diff };
+    })
+    .filter(e => e.diff > 0) // only positive changes
+    .sort((a, b) => b.diff - a.diff);
 
-  // Rank Mod/Gear/TotalScore by current score, add emoji next to current score
-  ["ModScore", "GearScore", "TotalScore"].forEach(key => {
-    const idx = COLS[key];
-    const ranked = rows.map(r => {
-      const cell = r.cells[idx];
-      const cur = Number(cell.getAttribute("data-cur") || 0);
-      return { cell, value: cur };
-    }).sort((a, b) => b.value - a.value);
     ranked.slice(0, 3).forEach((entry, rank) => {
-      entry.cell.innerHTML = entry.cell.innerHTML + " " + emojis[rank];
+      // append emoji next to the current score (do not duplicate if already present)
+      // simple check: if emoji already present, skip
+      const emoji = emojis[rank];
+      if (!entry.cell.innerHTML.includes(emoji)) {
+        entry.cell.innerHTML = entry.cell.innerHTML + " " + emoji;
+      }
     });
-  });
+  }
+
+  // Only award medals for Total GP and Total Score, based on their positive change
+  awardByDiff(TOTAL_GP_IDX);
+  awardByDiff(TOTAL_SCORE_IDX);
 }
 
 // helpers
 function extractLeadingNumber(text) {
   if (!text) return 0;
-  // remove commas and plus signs, then take first number
   const m = text.replace(/[,+]/g, "").match(/-?\d+(\.\d+)?/);
   return m ? Number(m[0]) : 0;
 }

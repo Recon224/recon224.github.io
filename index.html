@@ -26,7 +26,8 @@
   body{
     margin:20px;
     font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-    background: linear-gradient(180deg,var(--bg),#070708);
+    /* solid dark background (gradient removed as requested) */
+    background: var(--bg);
     color:#e8eef2;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
@@ -122,7 +123,8 @@
     border-radius:12px;
     padding:10px;
     box-shadow:var(--shadow);
-    overflow:auto;
+    /* allow page scrolling so table headers can stick to viewport */
+    overflow: visible;
   }
 
   table{
@@ -135,9 +137,9 @@
 
   thead th{
     position:sticky;
-    top:0;
-    z-index:3;
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    top:0; /* stick to the top of the viewport when page scrolls */
+    z-index:999; /* ensure headers stay above other content */
+    background: var(--panel); /* solid header background to avoid transparency artifacts */
     color:var(--accent);
     padding:10px 12px;
     text-align:center;
@@ -222,14 +224,14 @@
         <thead>
           <tr>
             <th data-col="Name" scope="col">Player link</th>
-            <th data-col="CharacterGP" scope="col">Character GP Prior Month</th>
-            <th data-col="ShipGP" scope="col">Ship GP Prior Month</th>
-            <th data-col="TotalGP" scope="col">Total GP Prior Month</th>
+            <th data-col="CharacterGP" scope="col">Character GP (Prior Month)</th>
+            <th data-col="ShipGP" scope="col">Ship GP (Prior Month)</th>
+            <th data-col="TotalGP" scope="col">Total GP (Prior Month)</th>
             <th data-col="LeagueId" scope="col">League</th>
             <th data-col="SkillRating" scope="col">Skill Rating</th>
-            <th data-col="ModScore" scope="col">Mod Score Prior Month</th>
-            <th data-col="GearScore" scope="col">Gear Score Prior Month</th>
-            <th data-col="TotalScore" scope="col">Total Score Prior Month</th>
+            <th data-col="ModScore" scope="col">Mod Score (Prior Month)</th>
+            <th data-col="GearScore" scope="col">Gear Score (Prior Month)</th>
+            <th data-col="TotalScore" scope="col">Total Score (Prior Month)</th>
             <th data-col="ZetaCount" scope="col">Zetas</th>
             <th data-col="OmiCount" scope="col">Omicrons</th>
             <th data-col="Speed20" scope="col">Speed ≥20</th>

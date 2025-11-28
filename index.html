@@ -413,7 +413,29 @@ function renderComparison(oldText, newText) {
     // 14: Ultimate GL
     tr.appendChild(makeTd(`${newGLs} <span class="oldVal">(${oldGLs})</span> ${formatDiff(diffGLs,0)}`, "num"));
 
-    // Append the fully-built row
+    /* ---------------------------
+       NORMALIZE ROW CELL COUNT
+       Ensure each row has exactly the same number of <td> as headers.
+       This prevents accidental shifting when CSV parsing produced too few/many fields.
+       --------------------------- */
+    (function normalizeRowCells(trEl) {
+      const headerCount = document.querySelectorAll("#guildTable thead th").length;
+      // Append empty cells if too few
+      while (trEl.children.length < headerCount) {
+        const td = document.createElement("td");
+        td.innerHTML = "";
+        trEl.appendChild(td);
+      }
+      // If too many, merge extras into the last expected cell
+      while (trEl.children.length > headerCount) {
+        const extra = trEl.removeChild(trEl.lastElementChild);
+        const lastIdx = headerCount - 1;
+        const lastCell = trEl.children[lastIdx];
+        lastCell.innerHTML = lastCell.innerHTML + ' ' + extra.innerHTML;
+      }
+    })(tr);
+
+    // Append the fully-built and normalized row
     tbody.appendChild(tr);
   });
 
@@ -485,7 +507,6 @@ function addTopThreeBadges() {
     [TOTAL_GP_IDX, TOTAL_SCORE_IDX].forEach(idx => {
       const cell = r.cells[idx];
       if (!cell) return;
-      // remove any .badge elements inside the cell
       const existing = cell.querySelectorAll('.badge');
       existing.forEach(e => e.remove());
     });
@@ -510,12 +531,10 @@ function addTopThreeBadges() {
       rank.textContent = String(i+1);
       const label = document.createElement('span');
       label.className = 'label';
-      // show concise text: "Top +X" where X is the diff (GP or Score)
       const diffText = (typeof entry.diff === 'number') ? (entry.diff > 0 ? `+${Number(entry.diff).toLocaleString()}` : `${Number(entry.diff).toLocaleString()}`) : '';
       label.textContent = diffText;
       badge.appendChild(rank);
       badge.appendChild(label);
-      // append badge to the cell (after existing content)
       entry.cell.appendChild(badge);
     });
 
@@ -536,7 +555,7 @@ function addTopThreeBadges() {
   }
 }
 
-/* Render winners inline strip (use badges instead of emoji) */
+/* Render winners inline strip (deduplicated, no repeated names) */
 function renderWinnersStrip() {
   const tableEl = document.getElementById("guildTable");
   const gpWinners = tableEl._gpWinners || [];
@@ -544,6 +563,7 @@ function renderWinnersStrip() {
   const gpContainer = document.getElementById("gpGrowth");
   const scoreContainer = document.getElementById("scoreGrowth");
 
+  // remove previous rows
   gpContainer.querySelectorAll(".winner-row").forEach(n => n.remove());
   scoreContainer.querySelectorAll(".winner-row").forEach(n => n.remove());
 
@@ -555,12 +575,18 @@ function renderWinnersStrip() {
       container.appendChild(row);
       return;
     }
-    winners.forEach((w,i) => {
+
+    // Deduplicate by player name to avoid duplicates in the strip
+    const seen = new Set();
+    winners.forEach((w, i) => {
+      const nameText = (w.name || "").trim() || "Unknown";
+      if (seen.has(nameText)) return; // skip duplicates
+      seen.add(nameText);
+
       const row = document.createElement("div");
       row.className = "winner-row";
-      const badge = document.createElement('div');
-      badge.className = 'medal';
-      // small inline badge (styled via .badge classes)
+
+      // small inline badge
       const badgeEl = document.createElement('span');
       badgeEl.className = 'badge badge-' + (i+1);
       const rank = document.createElement('span');
@@ -568,19 +594,21 @@ function renderWinnersStrip() {
       rank.textContent = String(i+1);
       const label = document.createElement('span');
       label.className = 'label';
-      const nameText = (w.name || "").trim() || "Unknown";
-      const valueText = (typeof w.diff === "number") ? (w.diff>0?`+${Number(w.diff).toLocaleString()}`:`${Number(w.diff).toLocaleString()}`) : "";
-      label.textContent = `${nameText}`;
+      label.textContent = nameText;
       badgeEl.appendChild(rank);
-      badgeEl.appendChild(document.createTextNode(' ')); // small gap
+      badgeEl.appendChild(document.createTextNode(' '));
       badgeEl.appendChild(label);
-      // Build row: badgeEl, name, value
+
       const nameDiv = document.createElement('div');
       nameDiv.className = 'winner-name';
       nameDiv.textContent = nameText;
+
       const valDiv = document.createElement('div');
       valDiv.className = 'winner-val';
+      const valueText = (typeof w.diff === "number") ? (w.diff > 0 ? `+${Number(w.diff).toLocaleString()}` : `${Number(w.diff).toLocaleString()}`) : "";
       valDiv.textContent = valueText;
+
+      // Append badge, name, and value — badge is decorative and unique per rank
       row.appendChild(badgeEl);
       row.appendChild(nameDiv);
       row.appendChild(valDiv);
@@ -599,7 +627,6 @@ function attachRippleHandler() {
     table.addEventListener('click', e => {
       const cell = e.target.closest('td.ripple');
       if (!cell) return;
-      // create ripple
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const r = document.createElement('span');
       r.className = 'ripple-anim';
@@ -635,7 +662,6 @@ function burstConfetti(containerRow, count=18) {
     el.style.transform = `translate(0,0) rotate(${Math.random()*360}deg)`;
     el.style.transition = `transform 900ms cubic-bezier(.2,.8,.2,1), opacity 900ms`;
     document.body.appendChild(el);
-    // random trajectory
     const dx = (Math.random()-0.5) * 300;
     const dy = (Math.random()-0.8) * 300;
     requestAnimationFrame(()=> {
@@ -671,7 +697,6 @@ function burstConfetti(containerRow, count=18) {
   });
 })();
 
-/* End of script */
 </script>
 </body>
 </html>

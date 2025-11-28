@@ -14,6 +14,9 @@
       --green:#00ff88;
       --red:#ff6b6b;
       --shadow: rgba(0,0,0,0.55);
+      --badge-1: linear-gradient(90deg,#ffd166,#ffb86b);
+      --badge-2: linear-gradient(90deg,#c7f0ff,#66d9ff);
+      --badge-3: linear-gradient(90deg,#d6f7d6,#9be564);
     }
 
     /* Base layout */
@@ -45,7 +48,7 @@
       transition: transform 160ms ease, background 160ms ease;
     }
     .winner-row:hover { transform: translateY(-3px); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00)); }
-    .medal { width:22px; text-align:center; font-size:16px; }
+    .medal { width:22px; text-align:center; font-size:14px; color:#111; }
     .winner-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e8e8e8; }
     .winner-val { color:var(--muted); font-size:12px; margin-left:6px; }
 
@@ -121,6 +124,36 @@
     /* Sort indicator */
     th[data-sort-dir="asc"]::after { content:" ▲"; font-size:11px; color:#ddd; margin-left:6px; }
     th[data-sort-dir="desc"]::after { content:" ▼"; font-size:11px; color:#ddd; margin-left:6px; }
+
+    /* Themed badges (integrated, subtle) */
+    .badge {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:600;
+      color:#111;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+      margin-left:8px;
+      vertical-align:middle;
+    }
+    .badge .rank {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      font-size:11px;
+      font-weight:700;
+      color:#111;
+      background:rgba(255,255,255,0.9);
+    }
+    .badge-1 { background: var(--badge-1); }
+    .badge-2 { background: var(--badge-2); }
+    .badge-3 { background: var(--badge-3); }
 
     /* Respect reduced motion */
     @media (prefers-reduced-motion: reduce) {
@@ -385,7 +418,7 @@ function renderComparison(oldText, newText) {
   });
 
   makeSortable();
-  addTopThreeEmojis();
+  addTopThreeBadges();
   renderWinnersStrip();
   attachRippleHandler(); // ensure ripple click handler is attached
 }
@@ -440,19 +473,21 @@ function sortTable(col, dir) {
   rows.forEach(r => table.tBodies[0].appendChild(r));
 }
 
-/* Award emojis and determine winners (based on positive change) */
-function addTopThreeEmojis() {
+/* Replace medals with integrated themed badges */
+function addTopThreeBadges() {
   const table = document.getElementById("guildTable");
   const rows = Array.from(table.tBodies[0].rows);
-  const emojis = ["🥇","🥈","🥉"];
   const TOTAL_GP_IDX = 3;
   const TOTAL_SCORE_IDX = 8;
 
-  // Clear previous emojis
+  // Remove existing badges (if any)
   rows.forEach(r => {
     [TOTAL_GP_IDX, TOTAL_SCORE_IDX].forEach(idx => {
       const cell = r.cells[idx];
-      if (cell) cell.innerHTML = cell.innerHTML.replace(/ 🥇| 🥈| 🥉/g, "");
+      if (!cell) return;
+      // remove any .badge elements inside the cell
+      const existing = cell.querySelectorAll('.badge');
+      existing.forEach(e => e.remove());
     });
   });
 
@@ -466,9 +501,22 @@ function addTopThreeEmojis() {
     .filter(e => e.diff > 0)
     .sort((a,b) => b.diff - a.diff);
 
-    ranked.slice(0,3).forEach((entry, rank) => {
-      const emoji = emojis[rank];
-      if (!entry.cell.innerHTML.includes(emoji)) entry.cell.innerHTML = entry.cell.innerHTML + " " + emoji;
+    // create badges for top 3
+    ranked.slice(0,3).forEach((entry, i) => {
+      const badge = document.createElement('span');
+      badge.className = 'badge badge-' + (i+1);
+      const rank = document.createElement('span');
+      rank.className = 'rank';
+      rank.textContent = String(i+1);
+      const label = document.createElement('span');
+      label.className = 'label';
+      // show concise text: "Top +X" where X is the diff (GP or Score)
+      const diffText = (typeof entry.diff === 'number') ? (entry.diff > 0 ? `+${Number(entry.diff).toLocaleString()}` : `${Number(entry.diff).toLocaleString()}`) : '';
+      label.textContent = diffText;
+      badge.appendChild(rank);
+      badge.appendChild(label);
+      // append badge to the cell (after existing content)
+      entry.cell.appendChild(badge);
     });
 
     return ranked.slice(0,3);
@@ -483,12 +531,12 @@ function addTopThreeEmojis() {
 
   // Celebrate top winner(s) with a small confetti burst (respect reduced-motion)
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    if (gpWinners[0]) burstConfetti(gpWinners[0].row, 14);
-    if (scoreWinners[0]) burstConfetti(scoreWinners[0].row, 14);
+    if (gpWinners[0]) burstConfetti(gpWinners[0].row, 12);
+    if (scoreWinners[0]) burstConfetti(scoreWinners[0].row, 12);
   }
 }
 
-/* Render winners inline strip */
+/* Render winners inline strip (use badges instead of emoji) */
 function renderWinnersStrip() {
   const tableEl = document.getElementById("guildTable");
   const gpWinners = tableEl._gpWinners || [];
@@ -510,10 +558,32 @@ function renderWinnersStrip() {
     winners.forEach((w,i) => {
       const row = document.createElement("div");
       row.className = "winner-row";
-      const emoji = i===0?"🥇":i===1?"🥈":"🥉";
+      const badge = document.createElement('div');
+      badge.className = 'medal';
+      // small inline badge (styled via .badge classes)
+      const badgeEl = document.createElement('span');
+      badgeEl.className = 'badge badge-' + (i+1);
+      const rank = document.createElement('span');
+      rank.className = 'rank';
+      rank.textContent = String(i+1);
+      const label = document.createElement('span');
+      label.className = 'label';
       const nameText = (w.name || "").trim() || "Unknown";
       const valueText = (typeof w.diff === "number") ? (w.diff>0?`+${Number(w.diff).toLocaleString()}`:`${Number(w.diff).toLocaleString()}`) : "";
-      row.innerHTML = `<div class="medal">${emoji}</div><div class="winner-name" title="${escapeHtml(nameText)}">${escapeHtml(nameText)}</div><div class="winner-val">${escapeHtml(valueText)}</div>`;
+      label.textContent = `${nameText}`;
+      badgeEl.appendChild(rank);
+      badgeEl.appendChild(document.createTextNode(' ')); // small gap
+      badgeEl.appendChild(label);
+      // Build row: badgeEl, name, value
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'winner-name';
+      nameDiv.textContent = nameText;
+      const valDiv = document.createElement('div');
+      valDiv.className = 'winner-val';
+      valDiv.textContent = valueText;
+      row.appendChild(badgeEl);
+      row.appendChild(nameDiv);
+      row.appendChild(valDiv);
       container.appendChild(row);
     });
   }
@@ -601,10 +671,7 @@ function burstConfetti(containerRow, count=18) {
   });
 })();
 
-/* Expose a simple revert helper (for your convenience) */
-/* If you ask to revert, I'll use the most recently provided full HTML you gave me as the baseline. */
-/* (No automatic action here — this comment documents the plan you requested.) */
-
+/* End of script */
 </script>
 </body>
 </html>

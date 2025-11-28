@@ -234,7 +234,7 @@ function getIndexMap(header) { const map = {}; header.forEach((h,i)=>map[h]=i); 
 function escapeHtml(str){ if (typeof str !== "string") return ""; return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function extractLeadingNumber(text){ if (!text) return 0; const m = text.replace(/[,+]/g,"").match(/-?\d+(\.\d+)?/); return m ? Number(m[0]) : 0; }
 
-/* Main render function */
+/* Main render function (uses DOM creation to avoid parsing issues) */
 function renderComparison(oldText, newText) {
   const old = parseCSV(oldText);
   const newer = parseCSV(newText);
@@ -294,58 +294,93 @@ function renderComparison(oldText, newText) {
     const diffGLs = newGLs - oldGLs;
 
     const playerName = (row[newMap["Name"]] || "").trim();
-    const playerLink = allyNew
+    const playerLinkHtml = allyNew
       ? `<a href="https://swgoh.gg/p/${encodeURIComponent(allyNew)}/" target="_blank" rel="noopener noreferrer">${escapeHtml(playerName)}</a>`
       : escapeHtml(playerName);
 
-    // Build row. Add classes: numeric cells get class "num", and TotalGP/TotalScore cells get tooltip wrapper and ripple.
+    // Create row and cells using DOM methods to ensure exact cell count/order
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td style="text-align:left" data-name="${escapeHtml(playerName).toLowerCase()}">${playerLink}</td>
 
-      <td class="num">${newCharGP.toLocaleString()} <span class="oldVal">(${oldCharGP.toLocaleString()})</span> ${formatDiff(diffCharGP,0)}</td>
+    // Helper to create a td with optional classes and inner HTML
+    function makeTd(htmlContent, className) {
+      const td = document.createElement("td");
+      if (className) td.className = className;
+      td.innerHTML = htmlContent;
+      return td;
+    }
 
-      <td class="num">${newShipGP.toLocaleString()} <span class="oldVal">(${oldShipGP.toLocaleString()})</span> ${formatDiff(diffShipGP,0)}</td>
+    // 1: Name (left aligned) with data-name for sorting
+    const tdName = document.createElement("td");
+    tdName.style.textAlign = "left";
+    tdName.setAttribute("data-name", escapeHtml(playerName).toLowerCase());
+    tdName.innerHTML = playerLinkHtml;
+    tr.appendChild(tdName);
 
-      <td class="num tooltip ripple" data-cur="${newTotalGP}" data-diff="${diffTotalGP}">
-        <span class="cell-main">${newTotalGP.toLocaleString()}</span>
-        <span class="oldVal">(${oldTotalGP.toLocaleString()})</span>
-        ${formatDiff(diffTotalGP,0)}
-        <div class="tip" role="tooltip">
-          <div class="tip-row"><strong>Change</strong><span>${diffTotalGP>0?`+${diffTotalGP.toLocaleString()}`:diffTotalGP.toLocaleString()}</span></div>
-          <div class="tip-row"><strong>Char GP</strong><span>${newCharGP.toLocaleString()}</span></div>
-          <div class="tip-row"><strong>Ship GP</strong><span>${newShipGP.toLocaleString()}</span></div>
-        </div>
-      </td>
+    // 2: Character GP
+    tr.appendChild(makeTd(`${newCharGP.toLocaleString()} <span class="oldVal">(${oldCharGP.toLocaleString()})</span> ${formatDiff(diffCharGP,0)}`, "num"));
 
-      <td>${escapeHtml(row[newMap["LeagueId"]] || "")}</td>
-      <td>${escapeHtml(row[newMap["SkillRating"]] || "")}</td>
+    // 3: Ship GP
+    tr.appendChild(makeTd(`${newShipGP.toLocaleString()} <span class="oldVal">(${oldShipGP.toLocaleString()})</span> ${formatDiff(diffShipGP,0)}`, "num"));
 
-      <td class="num">${newModScore.toFixed(2)} <span class="oldVal">(${oldModScore.toFixed(2)})</span> ${formatDiff(diffMod,2)}</td>
+    // 4: Total GP (tooltip + ripple + data attributes)
+    const tdTotalGP = document.createElement("td");
+    tdTotalGP.className = "num tooltip ripple";
+    tdTotalGP.setAttribute("data-cur", String(newTotalGP));
+    tdTotalGP.setAttribute("data-diff", String(diffTotalGP));
+    tdTotalGP.innerHTML = `<span class="cell-main">${newTotalGP.toLocaleString()}</span> <span class="oldVal">(${oldTotalGP.toLocaleString()})</span> ${formatDiff(diffTotalGP,0)}`;
+    // tooltip content
+    const tipGP = document.createElement("div");
+    tipGP.className = "tip";
+    tipGP.setAttribute("role","tooltip");
+    tipGP.innerHTML = `<div class="tip-row"><strong>Change</strong><span>${diffTotalGP>0?`+${diffTotalGP.toLocaleString()}`:diffTotalGP.toLocaleString()}</span></div>
+                       <div class="tip-row"><strong>Char GP</strong><span>${newCharGP.toLocaleString()}</span></div>
+                       <div class="tip-row"><strong>Ship GP</strong><span>${newShipGP.toLocaleString()}</span></div>`;
+    tdTotalGP.appendChild(tipGP);
+    tr.appendChild(tdTotalGP);
 
-      <td class="num">${newGearScore.toFixed(2)} <span class="oldVal">(${oldGearScore.toFixed(2)})</span> ${formatDiff(diffGear,2)}</td>
+    // 5: League
+    tr.appendChild(makeTd(escapeHtml(row[newMap["LeagueId"]] || "")));
 
-      <td class="num tooltip ripple" data-cur="${newTotalScore.toFixed(2)}" data-diff="${diffTotalScore}">
-        <span class="cell-main">${newTotalScore.toFixed(2)}</span>
-        <span class="oldVal">(${oldTotalScore.toFixed(2)})</span>
-        ${formatDiff(diffTotalScore,2)}
-        <div class="tip" role="tooltip">
-          <div class="tip-row"><strong>Change</strong><span>${diffTotalScore>0?`+${diffTotalScore.toFixed(2)}`:diffTotalScore.toFixed(2)}</span></div>
-          <div class="tip-row"><strong>Mod</strong><span>${newModScore.toFixed(2)}</span></div>
-          <div class="tip-row"><strong>Gear</strong><span>${newGearScore.toFixed(2)}</span></div>
-        </div>
-      </td>
+    // 6: SkillRating
+    tr.appendChild(makeTd(escapeHtml(row[newMap["SkillRating"]] || "")));
 
-      <td class="num">${newZetas} <span class="oldVal">(${oldZetas})</span> ${formatDiff(diffZetas,0)}</td>
+    // 7: Mod Score
+    tr.appendChild(makeTd(`${newModScore.toFixed(2)} <span class="oldVal">(${oldModScore.toFixed(2)})</span> ${formatDiff(diffMod,2)}`, "num"));
 
-      <td class="num">${newOmis} <span class="oldVal">(${oldOmis})</span> ${formatDiff(diffOmis,0)}</td>
+    // 8: Gear Score
+    tr.appendChild(makeTd(`${newGearScore.toFixed(2)} <span class="oldVal">(${oldGearScore.toFixed(2)})</span> ${formatDiff(diffGear,2)}`, "num"));
 
-      <td class="num">${newSpeed20} <span class="oldVal">(${oldSpeed20})</span> ${formatDiff(diffSpeed20,0)}</td>
+    // 9: Total Score (tooltip + ripple + data attributes)
+    const tdTotalScore = document.createElement("td");
+    tdTotalScore.className = "num tooltip ripple";
+    tdTotalScore.setAttribute("data-cur", String(newTotalScore.toFixed(2)));
+    tdTotalScore.setAttribute("data-diff", String(diffTotalScore));
+    tdTotalScore.innerHTML = `<span class="cell-main">${newTotalScore.toFixed(2)}</span> <span class="oldVal">(${oldTotalScore.toFixed(2)})</span> ${formatDiff(diffTotalScore,2)}`;
+    const tipScore = document.createElement("div");
+    tipScore.className = "tip";
+    tipScore.setAttribute("role","tooltip");
+    tipScore.innerHTML = `<div class="tip-row"><strong>Change</strong><span>${diffTotalScore>0?`+${diffTotalScore.toFixed(2)}`:diffTotalScore.toFixed(2)}</span></div>
+                          <div class="tip-row"><strong>Mod</strong><span>${newModScore.toFixed(2)}</span></div>
+                          <div class="tip-row"><strong>Gear</strong><span>${newGearScore.toFixed(2)}</span></div>`;
+    tdTotalScore.appendChild(tipScore);
+    tr.appendChild(tdTotalScore);
 
-      <td class="num">${newSpeed25} <span class="oldVal">(${oldSpeed25})</span> ${formatDiff(diffSpeed25,0)}</td>
+    // 10: Zetas
+    tr.appendChild(makeTd(`${newZetas} <span class="oldVal">(${oldZetas})</span> ${formatDiff(diffZetas,0)}`, "num"));
 
-      <td class="num">${newGLs} <span class="oldVal">(${oldGLs})</span> ${formatDiff(diffGLs,0)}</td>
-    `;
+    // 11: Omicrons
+    tr.appendChild(makeTd(`${newOmis} <span class="oldVal">(${oldOmis})</span> ${formatDiff(diffOmis,0)}`, "num"));
+
+    // 12: Speed20
+    tr.appendChild(makeTd(`${newSpeed20} <span class="oldVal">(${oldSpeed20})</span> ${formatDiff(diffSpeed20,0)}`, "num"));
+
+    // 13: Speed25
+    tr.appendChild(makeTd(`${newSpeed25} <span class="oldVal">(${oldSpeed25})</span> ${formatDiff(diffSpeed25,0)}`, "num"));
+
+    // 14: Ultimate GL
+    tr.appendChild(makeTd(`${newGLs} <span class="oldVal">(${oldGLs})</span> ${formatDiff(diffGLs,0)}`, "num"));
+
+    // Append the fully-built row
     tbody.appendChild(tr);
   });
 

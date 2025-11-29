@@ -1,0 +1,5 @@
+[build]
+  # This tells Netlify where to look for the JavaScript file that handles the API call
+  functions = "functions"
+  # Since you are only using an index.html file, the publish directory is the root
+  publish = "."

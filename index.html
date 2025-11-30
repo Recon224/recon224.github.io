@@ -5,631 +5,638 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Chewbooty Player Monthly Progression</title>
 <style>
-  :root{
-    --bg:#0b0b0c;
-    --panel:#141416;
-    --panel-2:#0f1011;
-    --muted:#9aa4ad;
-    --accent:#ffd700;
-    --success:#2ecc71;
-    --danger:#ff6b6b;
-    --link:#66ccff;
-    --glass: rgba(255,255,255,0.02);
-    --radius:10px;
-    --shadow: 0 10px 30px rgba(0,0,0,0.6);
-    --focus: rgba(102,194,255,0.14);
-    --mono: "Segoe UI Mono", "Roboto Mono", monospace;
-    --transition: 180ms cubic-bezier(.2,.9,.2,1);
-  }
+  :root{
+    --bg:#0b0b0c;
+    --panel:#141416;
+    --panel-2:#0f1011;
+    **--panel-alt:#111113; /* Subtle alternative panel color for even rows */**
+    --muted:#9aa4ad;
+    --accent:#ffd700;
+    --success:#2ecc71;
+    --danger:#ff6b6b;
+    --link:#66ccff;
+    --glass: rgba(255,255,255,0.02);
+    --radius:10px;
+    --shadow: 0 10px 30px rgba(0,0,0,0.6);
+    --focus: rgba(102,194,255,0.14);
+    --mono: "Segoe UI Mono", "Roboto Mono", monospace;
+    --transition: 180ms cubic-bezier(.2,.9,.2,1);
+  }
 
-  html,body{height:100%}
-  body{
-    margin:20px;
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-    /* solid dark background (gradient removed as requested) */
-    background: var(--bg);
-    color:#e8eef2;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    line-height:1.35;
-  }
+  html,body{height:100%}
+  body{
+    margin:20px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+    /* solid dark background (gradient removed as requested) */
+    background: var(--bg);
+    color:#e8eef2;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    line-height:1.35;
+  }
 
-  header{
-    display:flex;
-    gap:16px;
-    align-items:flex-start;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    margin-bottom:14px;
-  }
+  header{
+    display:flex;
+    gap:16px;
+    align-items:flex-start;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
 
-  h1{
-    margin:0;
-    color:var(--accent);
-    font-size:1.25rem;
-    letter-spacing:0.2px;
-  }
+  h1{
+    margin:0;
+    color:var(--accent);
+    font-size:1.25rem;
+    letter-spacing:0.2px;
+  }
 
-  /* Winners strip */
-  .winners-wrap{ display:flex; gap:12px; align-items:stretch; min-width:0; }
+  /* Winners strip */
+  .winners-wrap{ display:flex; gap:12px; align-items:stretch; min-width:0; }
 
-  .winners-strip{
-    display:flex;
-    gap:12px;
-    background:linear-gradient(180deg,var(--panel),var(--panel-2));
-    border-radius:var(--radius);
-    padding:10px;
-    border:1px solid rgba(255,255,255,0.03);
-    box-shadow:var(--shadow);
-    min-width:320px;
-    align-items:stretch;
-    transition: transform var(--transition), box-shadow var(--transition);
-  }
+  .winners-strip{
+    display:flex;
+    gap:12px;
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border-radius:var(--radius);
+    padding:10px;
+    border:1px solid rgba(255,255,255,0.03);
+    box-shadow:var(--shadow);
+    min-width:320px;
+    align-items:stretch;
+    transition: transform var(--transition), box-shadow var(--transition);
+  }
 
-  .winners-strip:hover{
-    transform: translateY(-4px);
-    box-shadow: 0 18px 40px rgba(0,0,0,0.7);
-  }
+  .winners-strip:hover{
+    transform: translateY(-4px);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+  }
 
-  .winners-col{ display:flex; flex-direction:column; gap:8px; min-width:0; flex:1; }
+  .winners-col{ display:flex; flex-direction:column; gap:8px; min-width:0; flex:1; }
 
-  .winners-title{ color:var(--accent); font-size:0.85rem; font-weight:600; }
+  .winners-title{ color:var(--accent); font-size:0.85rem; font-weight:600; }
 
-  .winner-row{
-    display:flex;
-    gap:10px;
-    align-items:center;
-    background:var(--glass);
-    padding:8px;
-    border-radius:8px;
-    font-size:0.9rem;
-    overflow:hidden;
-    white-space:nowrap;
-    text-overflow:ellipsis;
-    transition: background var(--transition), transform var(--transition);
-    cursor:default;
-  }
+  .winner-row{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    background:var(--glass);
+    padding:8px;
+    border-radius:8px;
+    font-size:0.9rem;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    transition: background var(--transition), transform var(--transition);
+    cursor:default;
+  }
 
-  .winner-row:hover{
-    background: rgba(255,255,255,0.03);
-    transform: translateY(-3px);
-  }
+  .winner-row:hover{
+    background: rgba(255,255,255,0.03);
+    transform: translateY(-3px);
+  }
 
-  .medal{ width:28px; text-align:center; font-size:1.05rem; transition: transform var(--transition); }
-  .winner-row:hover .medal{ transform: scale(1.08); }
+  .medal{ width:28px; text-align:center; font-size:1.05rem; transition: transform var(--transition); }
+  .winner-row:hover .medal{ transform: scale(1.08); }
 
-  .winner-name{ flex:1; overflow:hidden; text-overflow:ellipsis; color:#e8eef2; }
-  .winner-val{ color:var(--muted); font-size:0.9rem; margin-left:6px; }
+  .winner-name{ flex:1; overflow:hidden; text-overflow:ellipsis; color:#e8eef2; }
+  .winner-val{ color:var(--muted); font-size:0.9rem; margin-left:6px; }
 
-  .winners-controls{ display:flex; align-items:center; gap:8px; }
+  .winners-controls{ display:flex; align-items:center; gap:8px; }
 
-  .btn{
-    background:transparent;
-    border:1px solid rgba(255,255,255,0.06);
-    color:inherit;
-    padding:8px 10px;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:0.9rem;
-    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
-  }
-  .btn:hover{ background: rgba(255,255,255,0.02); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.6); }
-  .btn:focus{ outline:3px solid var(--focus); outline-offset:2px; }
+  .btn{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.06);
+    color:inherit;
+    padding:8px 10px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:0.9rem;
+    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+  }
+  .btn:hover{ background: rgba(255,255,255,0.02); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.6); }
+  .btn:focus{ outline:3px solid var(--focus); outline-offset:2px; }
 
-  /* Table area */
-  main{ margin-top:6px; }
-  .table-panel{
-    background: linear-gradient(180deg,var(--panel),transparent);
-    border-radius:12px;
-    padding:10px;
-    box-shadow:var(--shadow);
-    /* allow page scrolling so table headers can stick to viewport */
-    overflow: visible;
-  }
+  /* Table area */
+  main{ margin-top:6px; }
+  .table-panel{
+    background: linear-gradient(180deg,var(--panel),transparent);
+    border-radius:12px;
+    padding:10px;
+    box-shadow:var(--shadow);
+    /* allow page scrolling so table headers can stick to viewport */
+    overflow: visible;
+  }
 
-  table{
-    width:100%;
-    border-collapse:collapse;
-    min-width:980px;
-    font-size:0.95rem;
-    transition: transform var(--transition);
-  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:980px;
+    font-size:0.95rem;
+    transition: transform var(--transition);
+  }
 
-  thead th{
-    position:sticky;
-    top:0; /* stick to the top of the viewport when page scrolls */
-    z-index:999; /* ensure headers stay above other content */
-    background: var(--panel); /* solid header background to avoid transparency artifacts */
-    color:var(--accent);
-    padding:10px 12px;
-    text-align:center;
-    font-weight:600;
-    border-bottom:1px solid rgba(255,255,255,0.03);
-    cursor:pointer;
-    user-select:none;
-    transition: background var(--transition), transform var(--transition);
-  }
+  thead th{
+    position:sticky;
+    top:0; /* stick to the top of the viewport when page scrolls */
+    z-index:999; /* ensure headers stay above other content */
+    background: var(--panel); /* solid header background to avoid transparency artifacts */
+    color:var(--accent);
+    padding:10px 12px;
+    text-align:center;
+    font-weight:600;
+    border-bottom:1px solid rgba(255,255,255,0.03);
+    cursor:pointer;
+    user-select:none;
+    transition: background var(--transition), transform var(--transition);
+    **border-left:1px solid rgba(255,255,255,0.01); /* Subtle column divider */**
+  }
+  **thead th:first-child{ border-left: none; } /* Remove divider on first column */**
 
-  thead th:hover{ background: rgba(255,255,255,0.02); transform: translateY(-2px); }
+  thead th:hover{ background: rgba(255,255,255,0.02); transform: translateY(-2px); }
 
-  tbody td{
-    padding:10px 12px;
-    border-top:1px solid rgba(255,255,255,0.02);
-    text-align:center;
-    vertical-align:middle;
-    transition: background var(--transition), color var(--transition);
-  }
+  tbody td{
+    padding:10px 12px;
+    border-top:1px solid rgba(255,255,255,0.02);
+    text-align:center;
+    vertical-align:middle;
+    transition: background var(--transition), color var(--transition);
+    **border-left:1px solid rgba(255,255,255,0.01); /* Subtle column divider */**
+  }
+  **tbody td:first-child{ border-left: none; } /* Remove divider on first column */**
 
-  tr:nth-child(even) td{ background: transparent; }
-  tr:hover td{ background: rgba(255,255,255,0.02); }
+  **/* Subtle row color alternation */**
+  **tr:nth-child(even) td{ background: var(--panel-alt); }**
+  **tr:nth-child(even) td:hover{ background: rgba(255,255,255,0.03); } /* Keep hover visible */**
+  tr:hover td{ background: rgba(255,255,255,0.02); }
 
-  td[data-cur]{ font-variant-numeric: tabular-nums; }
+  td[data-cur]{ font-variant-numeric: tabular-nums; }
 
-  .oldVal{ color:var(--muted); font-size:0.9em; margin-left:6px; }
-  .pos{ color:var(--success); font-weight:700; margin-left:6px; }
-  .neg{ color:var(--danger); font-weight:700; margin-left:6px; }
-  .zero{ color:var(--muted); font-weight:700; margin-left:6px; }
+  .oldVal{ color:var(--muted); font-size:0.9em; margin-left:6px; }
+  .pos{ color:var(--success); font-weight:700; margin-left:6px; }
+  .neg{ color:var(--danger); font-weight:700; margin-left:6px; }
+  .zero{ color:var(--muted); font-weight:700; margin-left:6px; }
 
-  th[data-sort-dir="asc"]::after{ content:" ▲"; font-size:0.8rem; color:#ddd; margin-left:6px; }
-  th[data-sort-dir="desc"]::after{ content:" ▼"; font-size:0.8rem; color:#ddd; margin-left:6px; }
+  th[data-sort-dir="asc"]::after{ content:" ▲"; font-size:0.8rem; color:#ddd; margin-left:6px; }
+  th[data-sort-dir="desc"]::after{ content:" ▼"; font-size:0.8rem; color:#ddd; margin-left:6px; }
 
-  a{ color:var(--link); text-decoration:none; transition: color var(--transition), transform var(--transition); }
-  a:hover{ color:#aee8ff; transform: translateY(-2px); text-decoration:underline; }
+  a{ color:var(--link); text-decoration:none; transition: color var(--transition), transform var(--transition); }
+  a:hover{ color:#aee8ff; transform: translateY(-2px); text-decoration:underline; }
 
-  /* cell hover highlight for numeric cells */
-  tbody td[data-cur]:hover{ background: rgba(102,194,255,0.03); box-shadow: inset 0 0 0 1px rgba(102,194,255,0.02); }
+  /* cell hover highlight for numeric cells */
+  tbody td[data-cur]:hover{ background: rgba(102,194,255,0.03); box-shadow: inset 0 0 0 1px rgba(102,194,255,0.02); }
 
-  /* medal hover glow */
-  .medal:hover{ text-shadow: 0 6px 18px rgba(255,215,0,0.12); }
+  /* medal hover glow */
+  .medal:hover{ text-shadow: 0 6px 18px rgba(255,215,0,0.12); }
 
-  @media (max-width:980px){
-    .winners-strip{ flex-direction:column; min-width:260px; }
-    table{ min-width:820px; font-size:0.92rem; }
-  }
+  @media (max-width:980px){
+    .winners-strip{ flex-direction:column; min-width:260px; }
+    table{ min-width:820px; font-size:0.92rem; }
+  }
 
-  @media (max-width:720px){
-    header{ flex-direction:column; align-items:flex-start; gap:10px; }
-    table{ min-width:720px; font-size:0.9rem; }
-  }
+  @media (max-width:720px){
+    header{ flex-direction:column; align-items:flex-start; gap:10px; }
+    table{ min-width:720px; font-size:0.9rem; }
+  }
 
-  .sr-only{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
+  .sr-only{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
 </style>
 </head>
 <body>
-  <header>
-    <h1>Chewbooty Player Monthly Progression</h1>
+  <header>
+    <h1>Chewbooty Player Monthly Progression</h1>
 
-    <div class="winners-wrap" style="min-width:0;">
-      <div id="winnersContainer" class="winners-strip" aria-live="polite" aria-atomic="true">
-        <div class="winners-col" id="gpGrowth">
-          <div class="winners-title">Total GP Growth</div>
-          <div class="winner-row"><div class="medal">—</div><div class="winner-name">No positive growth</div><div class="winner-val"></div></div>
-        </div>
-        <div class="winners-col" id="scoreGrowth">
-          <div class="winners-title">Total Score Growth</div>
-          <div class="winner-row"><div class="medal">—</div><div class="winner-name">No positive growth</div><div class="winner-val"></div></div>
-        </div>
-      </div>
+    <div class="winners-wrap" style="min-width:0;">
+      <div id="winnersContainer" class="winners-strip" aria-live="polite" aria-atomic="true">
+        <div class="winners-col" id="gpGrowth">
+          <div class="winners-title">Total GP Growth</div>
+          <div class="winner-row"><div class="medal">—</div><div class="winner-name">No positive growth</div><div class="winner-val"></div></div>
+        </div>
+        <div class="winners-col" id="scoreGrowth">
+          <div class="winners-title">Total Score Growth</div>
+          <div class="winner-row"><div class="medal">—</div><div class="winner-name">No positive growth</div><div class="winner-val"></div></div>
+        </div>
+      </div>
 
-      <div class="winners-controls">
-        <button id="toggleWinners" class="btn" aria-expanded="true" aria-controls="winnersContainer">Hide winners</button>
-      </div>
-    </div>
-  </header>
+      <div class="winners-controls">
+        <button id="toggleWinners" class="btn" aria-expanded="true" aria-controls="winnersContainer">Hide winners</button>
+      </div>
+    </div>
+  </header>
 
-  <main>
-    <section class="table-panel" aria-labelledby="rosterLabel">
-      <h2 id="rosterLabel" class="sr-only">Guild roster table</h2>
-      <table id="guildTable" role="table" aria-describedby="rosterLabel">
-        <thead>
-          <tr>
-            <th data-col="Name" scope="col">Player Name (SWGOH Link)</th>
-            <th data-col="CharacterGP" scope="col">Character GP (Prior Month)</th>
-            <th data-col="ShipGP" scope="col">Ship GP (Prior Month)</th>
-            <th data-col="TotalGP" scope="col">Total GP (Prior Month)</th>
-            <th data-col="LeagueId" scope="col">League</th>
-            <th data-col="SkillRating" scope="col">Skill Rating</th>
-            <th data-col="ModScore" scope="col">Mod Score (Prior Month)</th>
-            <th data-col="GearScore" scope="col">Gear Score (Prior Month)</th>
-            <th data-col="TotalScore" scope="col">Total Score (Prior Month)</th>
-            <th data-col="ZetaCount" scope="col">Zetas</th>
-            <th data-col="OmiCount" scope="col">Omicrons</th>
-            <th data-col="Speed20" scope="col">Speed ≥20</th>
-            <th data-col="Speed25" scope="col">Speed ≥25</th>
-            <th data-col="UltimateGLCount" scope="col">Ultimate GL</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
+  <main>
+    <section class="table-panel" aria-labelledby="rosterLabel">
+      <h2 id="rosterLabel" class="sr-only">Guild roster table</h2>
+      <table id="guildTable" role="table" aria-describedby="rosterLabel">
+        <thead>
+          <tr>
+            <th data-col="Name" scope="col">Player Name (SWGOH Link)</th>
+            <th data-col="CharacterGP" scope="col">Character GP (Prior Month)</th>
+            <th data-col="ShipGP" scope="col">Ship GP (Prior Month)</th>
+            <th data-col="TotalGP" scope="col">Total GP (Prior Month)</th>
+            <th data-col="LeagueId" scope="col">League</th>
+            <th data-col="SkillRating" scope="col">Skill Rating</th>
+            <th data-col="ModScore" scope="col">Mod Score (Prior Month)</th>
+            <th data-col="GearScore" scope="col">Gear Score (Prior Month)</th>
+            <th data-col="TotalScore" scope="col">Total Score (Prior Month)</th>
+            <th data-col="ZetaCount" scope="col">Zetas</th>
+            <th data-col="OmiCount" scope="col">Omicrons</th>
+            <th data-col="Speed20" scope="col">Speed ≥20</th>
+            <th data-col="Speed25" scope="col">Speed ≥25</th>
+            <th data-col="UltimateGLCount" scope="col">Ultimate GL</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
 
 <script>
 /* Core behavior preserved from original:
-   - Loads ChewbootyOld.csv and Chewbooty.csv
-   - Parses CSVs, computes diffs, renders rows
-   - Sorting, top-3 emoji awards, winners strip, toggle control
-   - Kept CSV parsing and numeric handling robust
+   - Loads ChewbootyOld.csv and Chewbooty.csv
+   - Parses CSVs, computes diffs, renders rows
+   - Sorting, top-3 emoji awards, winners strip, toggle control
+   - Kept CSV parsing and numeric handling robust
 */
 
 const FILES = ["ChewbootyOld.csv","Chewbooty.csv"];
 const nf = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
 
 async function loadFiles(files){
-  const results = await Promise.all(files.map(async f => {
-    const res = await fetch(f);
-    if (!res.ok) throw new Error(`Failed to fetch ${f}: ${res.status}`);
-    return res.text();
-  }));
-  return results;
+  const results = await Promise.all(files.map(async f => {
+    const res = await fetch(f);
+    if (!res.ok) throw new Error(`Failed to fetch ${f}: ${res.status}`);
+    return res.text();
+  }));
+  return results;
 }
 
 function parseCSV(text){
-  if (!text) return { header:[], data:[] };
-  const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").filter(Boolean);
-  const rows = lines.map(line => {
-    const cells = [];
-    let cur = "", inQuote = false;
-    for (let i=0;i<line.length;i++){
-      const ch = line[i], next = line[i+1];
-      if (ch === '"' && inQuote && next === '"'){ cur += '"'; i++; }
-      else if (ch === '"'){ inQuote = !inQuote; }
-      else if (ch === ',' && !inQuote){ cells.push(cur.trim()); cur = ""; }
-      else { cur += ch; }
-    }
-    cells.push(cur.trim());
-    return cells.map(c => c.replace(/^"|"$/g,"").trim());
-  });
-  const header = rows.length ? rows[0].map(h => h.replace(/^\uFEFF/,"").trim()) : [];
-  const data = rows.slice(1);
-  return { header, data };
+  if (!text) return { header:[], data:[] };
+  const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").filter(Boolean);
+  const rows = lines.map(line => {
+    const cells = [];
+    let cur = "", inQuote = false;
+    for (let i=0;i<line.length;i++){
+      const ch = line[i], next = line[i+1];
+      if (ch === '"' && inQuote && next === '"'){ cur += '"'; i++; }
+      else if (ch === '"'){ inQuote = !inQuote; }
+      else if (ch === ',' && !inQuote){ cells.push(cur.trim()); cur = ""; }
+      else { cur += ch; }
+    }
+    cells.push(cur.trim());
+    return cells.map(c => c.replace(/^"|"$/g,"").trim());
+  });
+  const header = rows.length ? rows[0].map(h => h.replace(/^\uFEFF/,"").trim()) : [];
+  const data = rows.slice(1);
+  return { header, data };
 }
 
 function getIndexMap(header){
-  const map = {};
-  header.forEach((h,i) => map[h] = i);
-  return map;
+  const map = {};
+  header.forEach((h,i) => map[h] = i);
+  return map;
 }
 
 function safeNum(v){ const n = Number(v); return Number.isFinite(n) ? n : 0; }
 
 function formatDiff(diff, decimals=0){
-  const cls = diff > 0 ? "pos" : diff < 0 ? "neg" : "zero";
-  const sign = (diff > 0) ? "+" : "";
-  const val = (typeof diff === "number")
-    ? (decimals > 0 ? diff.toFixed(decimals) : nf.format(diff))
-    : diff;
-  return `<span class="${cls}">${sign}${val}</span>`;
+  const cls = diff > 0 ? "pos" : diff < 0 ? "neg" : "zero";
+  const sign = (diff > 0) ? "+" : "";
+  const val = (typeof diff === "number")
+    ? (decimals > 0 ? diff.toFixed(decimals) : nf.format(diff))
+    : diff;
+  return `<span class="${cls}">${sign}${val}</span>`;
 }
 
 function escapeHtml(str){
-  if (typeof str !== "string") return "";
-  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  if (typeof str !== "string") return "";
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
 function extractLeadingNumber(text){
-  if (!text) return 0;
-  const m = text.replace(/[,+]/g,"").match(/-?\d+(\.\d+)?/);
-  return m ? Number(m[0]) : 0;
+  if (!text) return 0;
+  const m = text.replace(/[,+]/g,"").match(/-?\d+(\.\d+)?/);
+  return m ? Number(m[0]) : 0;
 }
 
 function createRowHTML(data){
-  return `
-    <td style="text-align:left" data-name="${escapeHtml(data.playerName).toLowerCase()}">${data.playerLink}</td>
+  return `
+    <td style="text-align:left" data-name="${escapeHtml(data.playerName).toLowerCase()}">${data.playerLink}</td>
 
-    <td data-cur="${data.newCharGP}" data-diff="${data.diffCharGP}">
-      ${nf.format(data.newCharGP)}
-      <span class="oldVal">(${nf.format(data.oldCharGP)})</span>
-      ${formatDiff(data.diffCharGP,0)}
-    </td>
+    <td data-cur="${data.newCharGP}" data-diff="${data.diffCharGP}">
+      ${nf.format(data.newCharGP)}
+      <span class="oldVal">(${nf.format(data.oldCharGP)})</span>
+      ${formatDiff(data.diffCharGP,0)}
+    </td>
 
-    <td data-cur="${data.newShipGP}" data-diff="${data.diffShipGP}">
-      ${nf.format(data.newShipGP)}
-      <span class="oldVal">(${nf.format(data.oldShipGP)})</span>
-      ${formatDiff(data.diffShipGP,0)}
-    </td>
+    <td data-cur="${data.newShipGP}" data-diff="${data.diffShipGP}">
+      ${nf.format(data.newShipGP)}
+      <span class="oldVal">(${nf.format(data.oldShipGP)})</span>
+      ${formatDiff(data.diffShipGP,0)}
+    </td>
 
-    <td data-cur="${data.newTotalGP}" data-diff="${data.diffTotalGP}">
-      ${nf.format(data.newTotalGP)}
-      <span class="oldVal">(${nf.format(data.oldTotalGP)})</span>
-      ${formatDiff(data.diffTotalGP,0)}
-    </td>
+    <td data-cur="${data.newTotalGP}" data-diff="${data.diffTotalGP}">
+      ${nf.format(data.newTotalGP)}
+      <span class="oldVal">(${nf.format(data.oldTotalGP)})</span>
+      ${formatDiff(data.diffTotalGP,0)}
+    </td>
 
-    <td>${escapeHtml(data.league)}</td>
-    <td>${escapeHtml(data.skillRating)}</td>
+    <td>${escapeHtml(data.league)}</td>
+    <td>${escapeHtml(data.skillRating)}</td>
 
-    <td data-cur="${data.newModScore.toFixed(2)}" data-diff="${data.diffMod}">
-      ${data.newModScore.toFixed(2)}
-      <span class="oldVal">(${data.oldModScore.toFixed(2)})</span>
-      ${formatDiff(data.diffMod,2)}
-    </td>
+    <td data-cur="${data.newModScore.toFixed(2)}" data-diff="${data.diffMod}">
+      ${data.newModScore.toFixed(2)}
+      <span class="oldVal">(${data.oldModScore.toFixed(2)})</span>
+      ${formatDiff(data.diffMod,2)}
+    </td>
 
-    <td data-cur="${data.newGearScore.toFixed(2)}" data-diff="${data.diffGear}">
-      ${data.newGearScore.toFixed(2)}
-      <span class="oldVal">(${data.oldGearScore.toFixed(2)})</span>
-      ${formatDiff(data.diffGear,2)}
-    </td>
+    <td data-cur="${data.newGearScore.toFixed(2)}" data-diff="${data.diffGear}">
+      ${data.newGearScore.toFixed(2)}
+      <span class="oldVal">(${data.oldGearScore.toFixed(2)})</span>
+      ${formatDiff(data.diffGear,2)}
+    </td>
 
-    <td data-cur="${data.newTotalScore.toFixed(2)}" data-diff="${data.diffTotalScore}">
-      ${data.newTotalScore.toFixed(2)}
-      <span class="oldVal">(${data.oldTotalScore.toFixed(2)})</span>
-      ${formatDiff(data.diffTotalScore,2)}
-    </td>
+    <td data-cur="${data.newTotalScore.toFixed(2)}" data-diff="${data.diffTotalScore}">
+      ${data.newTotalScore.toFixed(2)}
+      <span class="oldVal">(${data.oldTotalScore.toFixed(2)})</span>
+      ${formatDiff(data.diffTotalScore,2)}
+    </td>
 
-    <td>
-      ${data.newZetas}
-      <span class="oldVal">(${data.oldZetas})</span>
-      ${formatDiff(data.diffZetas,0)}
-    </td>
+    <td>
+      ${data.newZetas}
+      <span class="oldVal">(${data.oldZetas})</span>
+      ${formatDiff(data.diffZetas,0)}
+    </td>
 
-    <td>
-      ${data.newOmis}
-      <span class="oldVal">(${data.oldOmis})</span>
-      ${formatDiff(data.diffOmis,0)}
-    </td>
+    <td>
+      ${data.newOmis}
+      <span class="oldVal">(${data.oldOmis})</span>
+      ${formatDiff(data.diffOmis,0)}
+    </td>
 
-    <td>
-      ${data.newSpeed20}
-      <span class="oldVal">(${data.oldSpeed20})</span>
-      ${formatDiff(data.diffSpeed20,0)}
-    </td>
+    <td>
+      ${data.newSpeed20}
+      <span class="oldVal">(${data.oldSpeed20})</span>
+      ${formatDiff(data.diffSpeed20,0)}
+    </td>
 
-    <td>
-      ${data.newSpeed25}
-      <span class="oldVal">(${data.oldSpeed25})</span>
-      ${formatDiff(data.diffSpeed25,0)}
-    </td>
+    <td>
+      ${data.newSpeed25}
+      <span class="oldVal">(${data.oldSpeed25})</span>
+      ${formatDiff(data.diffSpeed25,0)}
+    </td>
 
-    <td>
-      ${data.newGLs}
-      <span class="oldVal">(${data.oldGLs})</span>
-      ${formatDiff(data.diffGLs,0)}
-    </td>
-  `;
+    <td>
+      ${data.newGLs}
+      <span class="oldVal">(${data.oldGLs})</span>
+      ${formatDiff(data.diffGLs,0)}
+    </td>
+  `;
 }
 
 /* Updated addTopThreeEmojis: store plain winner objects {name, diff} for the winners strip */
 function addTopThreeEmojis(){
-  const table = document.getElementById("guildTable");
-  const rows = Array.from(table.tBodies[0].rows);
-  const emojis = ["🥇","🥈","🥉"];
-  const TOTAL_GP_IDX = 3;
-  const TOTAL_SCORE_IDX = 8;
+  const table = document.getElementById("guildTable");
+  const rows = Array.from(table.tBodies[0].rows);
+  const emojis = ["🥇","🥈","🥉"];
+  const TOTAL_GP_IDX = 3;
+  const TOTAL_SCORE_IDX = 8;
 
-  // Clear any previous emojis in those columns first (to avoid duplicates on re-render)
-  rows.forEach(r => {
-    [TOTAL_GP_IDX, TOTAL_SCORE_IDX].forEach(idx => {
-      const cell = r.cells[idx];
-      if (cell) {
-        cell.innerHTML = cell.innerHTML.replace(/ 🥇| 🥈| 🥉/g, "");
-      }
-    });
-  });
+  // Clear any previous emojis in those columns first (to avoid duplicates on re-render)
+  rows.forEach(r => {
+    [TOTAL_GP_IDX, TOTAL_SCORE_IDX].forEach(idx => {
+      const cell = r.cells[idx];
+      if (cell) {
+        cell.innerHTML = cell.innerHTML.replace(/ 🥇| 🥈| 🥉/g, "");
+      }
+    });
+  });
 
-  // Helper to compute winners and return plain objects
-  function computeWinners(idx) {
-    const ranked = rows.map(r => {
-      const cell = r.cells[idx];
-      const diffAttr = cell && cell.getAttribute ? cell.getAttribute("data-diff") : null;
-      const diff = diffAttr !== null ? Number(diffAttr || 0) : 0;
-      const name = (r.cells[0] && (r.cells[0].innerText || "")).trim();
-      return { cell, diff, name };
-    })
-    .filter(e => e.diff > 0) // only positive changes
-    .sort((a, b) => b.diff - a.diff);
+  // Helper to compute winners and return plain objects
+  function computeWinners(idx) {
+    const ranked = rows.map(r => {
+      const cell = r.cells[idx];
+      const diffAttr = cell && cell.getAttribute ? cell.getAttribute("data-diff") : null;
+      const diff = diffAttr !== null ? Number(diffAttr || 0) : 0;
+      const name = (r.cells[0] && (r.cells[0].innerText || "")).trim();
+      return { cell, diff, name };
+    })
+    .filter(e => e.diff > 0) // only positive changes
+    .sort((a, b) => b.diff - a.diff);
 
-    // award emojis visually in the table cells
-    ranked.slice(0, 3).forEach((entry, rank) => {
-      const emoji = emojis[rank];
-      if (entry.cell && !entry.cell.innerHTML.includes(emoji)) {
-        entry.cell.innerHTML = entry.cell.innerHTML + " " + emoji;
-      }
-    });
+    // award emojis visually in the table cells
+    ranked.slice(0, 3).forEach((entry, rank) => {
+      const emoji = emojis[rank];
+      if (entry.cell && !entry.cell.innerHTML.includes(emoji)) {
+        entry.cell.innerHTML = entry.cell.innerHTML + " " + emoji;
+      }
+    });
 
-    // return plain objects for winners strip rendering
-    return ranked.slice(0, 3).map(e => ({ name: e.name, diff: e.diff }));
-  }
+    // return plain objects for winners strip rendering
+    return ranked.slice(0, 3).map(e => ({ name: e.name, diff: e.diff }));
+  }
 
-  const gpWinners = computeWinners(TOTAL_GP_IDX);
-  const scoreWinners = computeWinners(TOTAL_SCORE_IDX);
+  const gpWinners = computeWinners(TOTAL_GP_IDX);
+  const scoreWinners = computeWinners(TOTAL_SCORE_IDX);
 
-  // Save winners data on the table element for the winners strip to read
-  table._gpWinners = gpWinners;
-  table._scoreWinners = scoreWinners;
+  // Save winners data on the table element for the winners strip to read
+  table._gpWinners = gpWinners;
+  table._scoreWinners = scoreWinners;
 }
 
 function renderWinnersStrip(){
-  const tableEl = document.getElementById("guildTable");
-  const gpWinners = tableEl._gpWinners || [];
-  const scoreWinners = tableEl._scoreWinners || [];
+  const tableEl = document.getElementById("guildTable");
+  const gpWinners = tableEl._gpWinners || [];
+  const scoreWinners = tableEl._scoreWinners || [];
 
-  const gpContainer = document.getElementById("gpGrowth");
-  const scoreContainer = document.getElementById("scoreGrowth");
+  const gpContainer = document.getElementById("gpGrowth");
+  const scoreContainer = document.getElementById("scoreGrowth");
 
-  // clear existing rows (keep title)
-  gpContainer.querySelectorAll(".winner-row").forEach(n => n.remove());
-  scoreContainer.querySelectorAll(".winner-row").forEach(n => n.remove());
+  // clear existing rows (keep title)
+  gpContainer.querySelectorAll(".winner-row").forEach(n => n.remove());
+  scoreContainer.querySelectorAll(".winner-row").forEach(n => n.remove());
 
-  function renderCategory(container, winners, valueLabel) {
-    if (!winners.length) {
-      const row = document.createElement("div");
-      row.className = "winner-row";
-      row.innerHTML = `<div class="medal">—</div><div class="winner-name">No positive growth</div><div class="winner-val"></div>`;
-      container.appendChild(row);
-      return;
-    }
-    winners.forEach((w, i) => {
-      const row = document.createElement("div");
-      row.className = "winner-row";
-      const emoji = i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉";
-      const nameText = (w.name || "").trim() || "Unknown";
-      const valueText = (typeof w.diff === "number") ? (w.diff > 0 ? `+${Number(w.diff).toLocaleString()}` : `${Number(w.diff).toLocaleString()}`) : "";
-      row.innerHTML = `<div class="medal">${emoji}</div><div class="winner-name" title="${escapeHtml(nameText)}">${escapeHtml(nameText)}</div><div class="winner-val">${escapeHtml(valueText)}</div>`;
-      container.appendChild(row);
-    });
-  }
+  function renderCategory(container, winners, valueLabel) {
+    if (!winners.length) {
+      const row = document.createElement("div");
+      row.className = "winner-row";
+      row.innerHTML = `<div class="medal">—</div><div class="winner-name">No positive growth</div><div class="winner-val"></div>`;
+      container.appendChild(row);
+      return;
+    }
+    winners.forEach((w, i) => {
+      const row = document.createElement("div");
+      row.className = "winner-row";
+      const emoji = i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉";
+      const nameText = (w.name || "").trim() || "Unknown";
+      const valueText = (typeof w.diff === "number") ? (w.diff > 0 ? `+${Number(w.diff).toLocaleString()}` : `${Number(w.diff).toLocaleString()}`) : "";
+      row.innerHTML = `<div class="medal">${emoji}</div><div class="winner-name" title="${escapeHtml(nameText)}">${escapeHtml(nameText)}</div><div class="winner-val">${escapeHtml(valueText)}</div>`;
+      container.appendChild(row);
+    });
+  }
 
-  renderCategory(gpContainer, gpWinners, "GP");
-  renderCategory(scoreContainer, scoreWinners, "Score");
+  renderCategory(gpContainer, gpWinners, "GP");
+  renderCategory(scoreContainer, scoreWinners, "Score");
 }
 
 function makeSortable(){
-  const headers = Array.from(document.querySelectorAll("th[data-col]"));
-  headers.forEach(th => {
-    if (!th.dataset.sortDir) th.dataset.sortDir = "";
-    th.addEventListener("click", () => {
-      const col = th.getAttribute("data-col");
-      const current = th.dataset.sortDir || "";
-      let newDir;
-      if (current === "") newDir = (col === "Name") ? "asc" : "desc";
-      else if (current === "asc") newDir = "desc";
-      else newDir = "asc";
-      headers.forEach(h => h.dataset.sortDir = "");
-      th.dataset.sortDir = newDir;
-      sortTable(col, newDir);
-      headers.forEach(h => h.style.opacity = h === th ? "1" : "0.95");
-    });
-  });
+  const headers = Array.from(document.querySelectorAll("th[data-col]"));
+  headers.forEach(th => {
+    if (!th.dataset.sortDir) th.dataset.sortDir = "";
+    th.addEventListener("click", () => {
+      const col = th.getAttribute("data-col");
+      const current = th.dataset.sortDir || "";
+      let newDir;
+      if (current === "") newDir = (col === "Name") ? "asc" : "desc";
+      else if (current === "asc") newDir = "desc";
+      else newDir = "asc";
+      headers.forEach(h => h.dataset.sortDir = "");
+      th.dataset.sortDir = newDir;
+      sortTable(col, newDir);
+      headers.forEach(h => h.style.opacity = h === th ? "1" : "0.95");
+    });
+  });
 }
 
 function sortTable(col, dir){
-  const table = document.getElementById("guildTable");
-  const rows = Array.from(table.tBodies[0].rows);
-  const headerCells = Array.from(table.tHead.rows[0].cells);
-  const idx = headerCells.findIndex(c => c.getAttribute("data-col") === col);
-  if (idx === -1) return;
-  if (!dir){
-    const th = headerCells[idx];
-    dir = th && th.dataset.sortDir ? th.dataset.sortDir : (col === "Name" ? "asc" : "desc");
-  }
+  const table = document.getElementById("guildTable");
+  const rows = Array.from(table.tBodies[0].rows);
+  const headerCells = Array.from(table.tHead.rows[0].cells);
+  const idx = headerCells.findIndex(c => c.getAttribute("data-col") === col);
+  if (idx === -1) return;
+  if (!dir){
+    const th = headerCells[idx];
+    dir = th && th.dataset.sortDir ? th.dataset.sortDir : (col === "Name" ? "asc" : "desc");
+  }
 
-  rows.sort((a,b) => {
-    if (col === "Name"){
-      const nameA = (a.cells[0].getAttribute("data-name") || a.cells[0].innerText || "").toLowerCase();
-      const nameB = (b.cells[0].getAttribute("data-name") || b.cells[0].innerText || "").toLowerCase();
-      if (nameA < nameB) return dir === "asc" ? -1 : 1;
-      if (nameA > nameB) return dir === "asc" ? 1 : -1;
-      return 0;
-    } else {
-      const numA = extractLeadingNumber(a.cells[idx].innerText);
-      const numB = extractLeadingNumber(b.cells[idx].innerText);
-      if (numA === numB) return 0;
-      return dir === "asc" ? (numA - numB) : (numB - numA);
-    }
-  });
+  rows.sort((a,b) => {
+    if (col === "Name"){
+      const nameA = (a.cells[0].getAttribute("data-name") || a.cells[0].innerText || "").toLowerCase();
+      const nameB = (b.cells[0].getAttribute("data-name") || b.cells[0].innerText || "").toLowerCase();
+      if (nameA < nameB) return dir === "asc" ? -1 : 1;
+      if (nameA > nameB) return dir === "asc" ? 1 : -1;
+      return 0;
+    } else {
+      const numA = extractLeadingNumber(a.cells[idx].innerText);
+      const numB = extractLeadingNumber(b.cells[idx].innerText);
+      if (numA === numB) return 0;
+      return dir === "asc" ? (numA - numB) : (numB - numA);
+    }
+  });
 
-  rows.forEach(r => table.tBodies[0].appendChild(r));
+  rows.forEach(r => table.tBodies[0].appendChild(r));
 }
 
 /* Toggle winners strip */
 (function attachToggle(){
-  const btn = document.getElementById("toggleWinners");
-  const container = document.getElementById("winnersContainer");
-  if (!btn || !container) return;
-  btn.addEventListener("click", () => {
-    const isHidden = container.style.display === "none";
-    container.style.display = isHidden ? "flex" : "none";
-    btn.textContent = isHidden ? "Hide winners" : "Show winners";
-    btn.setAttribute("aria-expanded", String(isHidden));
-  });
+  const btn = document.getElementById("toggleWinners");
+  const container = document.getElementById("winnersContainer");
+  if (!btn || !container) return;
+  btn.addEventListener("click", () => {
+    const isHidden = container.style.display === "none";
+    container.style.display = isHidden ? "flex" : "none";
+    btn.textContent = isHidden ? "Hide winners" : "Show winners";
+    btn.setAttribute("aria-expanded", String(isHidden));
+  });
 })();
 
 /* Main render flow */
 async function renderComparison(){
-  try {
-    const [oldCSV, newCSV] = await loadFiles(FILES);
-    const old = parseCSV(oldCSV);
-    const newer = parseCSV(newCSV);
-    const newMap = getIndexMap(newer.header);
-    const oldMap = getIndexMap(old.header);
-    const tbody = document.querySelector("#guildTable tbody");
-    tbody.innerHTML = "";
+  try {
+    const [oldCSV, newCSV] = await loadFiles(FILES);
+    const old = parseCSV(oldCSV);
+    const newer = parseCSV(newCSV);
+    const newMap = getIndexMap(newer.header);
+    const oldMap = getIndexMap(old.header);
+    const tbody = document.querySelector("#guildTable tbody");
+    tbody.innerHTML = "";
 
-    const fragment = document.createDocumentFragment();
+    const fragment = document.createDocumentFragment();
 
-    newer.data.forEach(row => {
-      const allyNew = (row[newMap["AllyCode"]] || "").trim();
-      let oldRow = null;
-      if (allyNew && oldMap["AllyCode"] !== undefined){
-        oldRow = old.data.find(r => (r[oldMap["AllyCode"]]||"").trim() === allyNew);
-      }
-      if (!oldRow && oldMap["Name"] !== undefined){
-        const nameNew = (row[newMap["Name"]] || "").trim();
-        oldRow = old.data.find(r => (r[oldMap["Name"]]||"").trim() === nameNew);
-      }
+    newer.data.forEach(row => {
+      const allyNew = (row[newMap["AllyCode"]] || "").trim();
+      let oldRow = null;
+      if (allyNew && oldMap["AllyCode"] !== undefined){
+        oldRow = old.data.find(r => (r[oldMap["AllyCode"]]||"").trim() === allyNew);
+      }
+      if (!oldRow && oldMap["Name"] !== undefined){
+        const nameNew = (row[newMap["Name"]] || "").trim();
+        oldRow = old.data.find(r => (r[oldMap["Name"]]||"").trim() === nameNew);
+      }
 
-      const newCharGP = safeNum(row[newMap["CharacterGP"]]);
-      const newShipGP = safeNum(row[newMap["ShipGP"]]);
-      const newTotalGP = newCharGP + newShipGP;
-      const newModScore = safeNum(row[newMap["ModScore"]]);
-      const newGearScore = safeNum(row[newMap["GearScore"]]);
-      const newTotalScore = safeNum(row[newMap["TotalScore"]]);
-      const newZetas = safeNum(row[newMap["ZetaCount"]]);
-      const newOmis = safeNum(row[newMap["OmiCount"]]);
-      const newSpeed20 = safeNum(row[newMap["Speed20"]]);
-      const newSpeed25 = safeNum(row[newMap["Speed25"]]);
-      const newGLs = safeNum(row[newMap["UltimateGLCount"]]);
+      const newCharGP = safeNum(row[newMap["CharacterGP"]]);
+      const newShipGP = safeNum(row[newMap["ShipGP"]]);
+      const newTotalGP = newCharGP + newShipGP;
+      const newModScore = safeNum(row[newMap["ModScore"]]);
+      const newGearScore = safeNum(row[newMap["GearScore"]]);
+      const newTotalScore = safeNum(row[newMap["TotalScore"]]);
+      const newZetas = safeNum(row[newMap["ZetaCount"]]);
+      const newOmis = safeNum(row[newMap["OmiCount"]]);
+      const newSpeed20 = safeNum(row[newMap["Speed20"]]);
+      const newSpeed25 = safeNum(row[newMap["Speed25"]]);
+      const newGLs = safeNum(row[newMap["UltimateGLCount"]]);
 
-      const oldCharGP = oldRow ? safeNum(oldRow[oldMap["CharacterGP"]]) : 0;
-      const oldShipGP = oldRow ? safeNum(oldRow[oldMap["ShipGP"]]) : 0;
-      const oldTotalGP = oldCharGP + oldShipGP;
-      const oldModScore = oldRow ? safeNum(oldRow[oldMap["ModScore"]]) : 0;
-      const oldGearScore = oldRow ? safeNum(oldRow[oldMap["GearScore"]]) : 0;
-      const oldTotalScore = oldRow ? safeNum(oldRow[oldMap["TotalScore"]]) : 0;
-      const oldZetas = oldRow ? safeNum(oldRow[oldMap["ZetaCount"]]) : 0;
-      const oldOmis = oldRow ? safeNum(oldRow[oldMap["OmiCount"]]) : 0;
-      const oldSpeed20 = oldRow ? safeNum(oldRow[oldMap["Speed20"]]) : 0;
-      const oldSpeed25 = oldRow ? safeNum(oldRow[oldMap["Speed25"]]) : 0;
-      const oldGLs = oldRow ? safeNum(oldRow[oldMap["UltimateGLCount"]]) : 0;
+      const oldCharGP = oldRow ? safeNum(oldRow[oldMap["CharacterGP"]]) : 0;
+      const oldShipGP = oldRow ? safeNum(oldRow[oldMap["ShipGP"]]) : 0;
+      const oldTotalGP = oldCharGP + oldShipGP;
+      const oldModScore = oldRow ? safeNum(oldRow[oldMap["ModScore"]]) : 0;
+      const oldGearScore = oldRow ? safeNum(oldRow[oldMap["GearScore"]]) : 0;
+      const oldTotalScore = oldRow ? safeNum(oldRow[oldMap["TotalScore"]]) : 0;
+      const oldZetas = oldRow ? safeNum(oldRow[oldMap["ZetaCount"]]) : 0;
+      const oldOmis = oldRow ? safeNum(oldRow[oldMap["OmiCount"]]) : 0;
+      const oldSpeed20 = oldRow ? safeNum(oldRow[oldMap["Speed20"]]) : 0;
+      const oldSpeed25 = oldRow ? safeNum(oldRow[oldMap["Speed25"]]) : 0;
+      const oldGLs = oldRow ? safeNum(oldRow[oldMap["UltimateGLCount"]]) : 0;
 
-      const diffCharGP = newCharGP - oldCharGP;
-      const diffShipGP = newShipGP - oldShipGP;
-      const diffTotalGP = newTotalGP - oldTotalGP;
-      const diffMod = newModScore - oldModScore;
-      const diffGear = newGearScore - oldGearScore;
-      const diffTotalScore = newTotalScore - oldTotalScore;
-      const diffZetas = newZetas - oldZetas;
-      const diffOmis = newOmis - oldOmis;
-      const diffSpeed20 = newSpeed20 - oldSpeed20;
-      const diffSpeed25 = newSpeed25 - oldSpeed25;
-      const diffGLs = newGLs - oldGLs;
+      const diffCharGP = newCharGP - oldCharGP;
+      const diffShipGP = newShipGP - oldShipGP;
+      const diffTotalGP = newTotalGP - oldTotalGP;
+      const diffMod = newModScore - oldModScore;
+      const diffGear = newGearScore - oldGearScore;
+      const diffTotalScore = newTotalScore - oldTotalScore;
+      const diffZetas = newZetas - oldZetas;
+      const diffOmis = newOmis - oldOmis;
+      const diffSpeed20 = newSpeed20 - oldSpeed20;
+      const diffSpeed25 = newSpeed25 - oldSpeed25;
+      const diffGLs = newGLs - oldGLs;
 
-      const playerName = (row[newMap["Name"]] || "").trim();
-      const playerLink = allyNew
-        ? `<a href="https://swgoh.gg/p/${encodeURIComponent(allyNew)}/" target="_blank" rel="noopener noreferrer">${escapeHtml(playerName)}</a>`
-        : escapeHtml(playerName);
+      const playerName = (row[newMap["Name"]] || "").trim();
+      const playerLink = allyNew
+        ? `<a href="https://swgoh.gg/p/${encodeURIComponent(allyNew)}/" target="_blank" rel="noopener noreferrer">${escapeHtml(playerName)}</a>`
+        : escapeHtml(playerName);
 
-      const data = {
-        playerName, playerLink,
-        newCharGP, newShipGP, newTotalGP, newModScore, newGearScore, newTotalScore,
-        newZetas, newOmis, newSpeed20, newSpeed25, newGLs,
-        oldCharGP, oldShipGP, oldTotalGP, oldModScore, oldGearScore, oldTotalScore,
-        oldZetas, oldOmis, oldSpeed20, oldSpeed25, oldGLs,
-        diffCharGP, diffShipGP, diffTotalGP, diffMod, diffGear, diffTotalScore,
-        diffZetas, diffOmis, diffSpeed20, diffSpeed25, diffGLs,
-        league: row[newMap["LeagueId"]] || "",
-        skillRating: row[newMap["SkillRating"]] || ""
-      };
+      const data = {
+        playerName, playerLink,
+        newCharGP, newShipGP, newTotalGP, newModScore, newGearScore, newTotalScore,
+        newZetas, newOmis, newSpeed20, newSpeed25, newGLs,
+        oldCharGP, oldShipGP, oldTotalGP, oldModScore, oldGearScore, oldTotalScore,
+        oldZetas, oldOmis, oldSpeed20, oldSpeed25, oldGLs,
+        diffCharGP, diffShipGP, diffTotalGP, diffMod, diffGear, diffTotalScore,
+        diffZetas, diffOmis, diffSpeed20, diffSpeed25, diffGLs,
+        league: row[newMap["LeagueId"]] || "",
+        skillRating: row[newMap["SkillRating"]] || ""
+      };
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = createRowHTML(data);
-      fragment.appendChild(tr);
-    });
+      const tr = document.createElement("tr");
+      tr.innerHTML = createRowHTML(data);
+      fragment.appendChild(tr);
+    });
 
-    tbody.appendChild(fragment);
+    tbody.appendChild(fragment);
 
-    makeSortable();
-    addTopThreeEmojis();
-    renderWinnersStrip();
-  } catch (err){
-    console.error("Error loading CSVs:", err);
-    const tbody = document.querySelector("#guildTable tbody");
-    tbody.innerHTML = `<tr><td colspan="14" style="color:#f88; text-align:center;">Error loading CSV files. Check console for details.</td></tr>`;
-  }
+    makeSortable();
+    addTopThreeEmojis();
+    renderWinnersStrip();
+  } catch (err){
+    console.error("Error loading CSVs:", err);
+    const tbody = document.querySelector("#guildTable tbody");
+    tbody.innerHTML = `<tr><td colspan="14" style="color:#f88; text-align:center;">Error loading CSV files. Check console for details.</td></tr>`;
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderComparison();
+  renderComparison();
 });
 </script>
 </body>

@@ -3,36 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guild TB Stats Tracker</title>
+    <title>SWGOH TB Performance Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <style>
-        body { background-color: #f8f9fa; padding: 20px; font-family: sans-serif; }
-        .header-area { background: #1a2a3a; color: white; padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem; }
-        .table thead th { background-color: #2c3e50; color: white; white-space: nowrap; }
+        body { background-color: #f0f2f5; padding: 20px; font-family: 'Inter', sans-serif; }
+        .header-card { background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); color: white; padding: 30px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: 100%; }
+        .table-card { background: white; border-radius: 12px; padding: 15px; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        /* Table Styling */
+        #statsTable thead th { background-color: #2c3e50; color: white; border: none; }
+        .details-row { background-color: #f8f9fa !important; border-left: 5px solid #1a2a6c; }
+        .phase-box { background: white; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin: 5px; display: inline-block; min-width: 150px; }
+        .sparkline-container { width: 100px; height: 30px; }
     </style>
 </head>
 <body>
 
 <div class="container-fluid">
-    <div class="header-area d-flex justify-content-between align-items-center">
+    <div class="header-card d-flex justify-content-between align-items-center flex-wrap">
         <div>
-            <h2 class="mb-0">Guild TB Performance</h2>
-            <small id="status">Searching for data files...</small>
+            <h1 class="fw-bold mb-1">Territory Battle Command Center</h1>
+            <p class="mb-0 opacity-75" id="status">Scanning for logs...</p>
         </div>
-        <div>
-            <label class="fw-bold text-light small d-block">Select TB Date:</label>
-            <select id="dateSelector" class="form-select" onchange="loadCsvData(this.value)"></select>
+        <div class="bg-white p-3 rounded text-dark shadow-sm">
+            <label class="small fw-bold d-block mb-1 text-muted text-uppercase">Select Operation Date</label>
+            <select id="dateSelector" class="form-select border-0 bg-light" onchange="loadCsvData(this.value)"></select>
         </div>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <table id="statsTable" class="table table-striped table-hover" style="width:100%">
-                <thead><tr id="tableHeader"></tr></thead>
-                <tbody id="tableBody"></tbody>
-            </table>
+    <div class="row">
+        <div class="col-lg-12 mb-4">
+            <div class="stat-card">
+                <h5 class="fw-bold"><i class="bi bi-graph-up"></i> Guild Wave Leaders (Top 10)</h5>
+                <div style="height: 300px;">
+                    <canvas id="guildChart"></canvas>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <div class="table-card">
+        <h5 class="fw-bold mb-3">Member Deployment Logs <small class="text-muted fw-normal">(Click rows for full Phase breakdown)</small></h5>
+        <table id="statsTable" class="table table-hover align-middle" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th> <th>Player Name</th>
+                    <th>Total Points</th>
+                    <th>Total Waves</th>
+                    <th>Wave Trend (P1-P6)</th>
+                    <th>Platoons</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
     </div>
 </div>
 
@@ -40,53 +65,42 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
     let dataTable;
+    let mainChart;
 
+    // 1. Scan logic from previous turn
     async function scanForFiles() {
         const selector = document.getElementById('dateSelector');
         const foundFiles = [];
-        
-        // We will check the last 100 weeks (roughly 2 years) for files
         let checkDate = new Date(); 
-        // Set to the most recent Sunday (common TB end day) to start the search
         checkDate.setDate(checkDate.getDate() + (7 - checkDate.getDay()) % 7);
 
-        document.getElementById('status').innerText = "Scanning for files...";
-
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 52; i++) { // Check last year
             const dateStr = checkDate.toISOString().split('T')[0];
             const fileName = `tb_${dateStr}.csv`;
-            
             try {
-                // We use a HEAD request to see if the file exists without downloading it
-                const response = await fetch(fileName, { method: 'HEAD' });
-                if (response.ok) {
-                    foundFiles.push(fileName);
-                }
-            } catch (e) { /* File doesn't exist, skip */ }
-            
-            // Move back 7 days for the next check
+                const resp = await fetch(fileName, { method: 'HEAD' });
+                if (resp.ok) foundFiles.push(fileName);
+            } catch (e) {}
             checkDate.setDate(checkDate.getDate() - 7);
         }
 
-        if (foundFiles.length === 0) {
-            // If no Sunday files found, try one specific check for your 2025-12-28 file
-            // as a backup in case the Sunday logic misses it.
-            const manualFile = "tb_2025-12-28.csv";
+        // Specific check for your starting file
+        const manualFile = "tb_2025-12-28.csv";
+        if (!foundFiles.includes(manualFile)) {
             const resp = await fetch(manualFile, { method: 'HEAD' });
             if (resp.ok) foundFiles.push(manualFile);
         }
 
         if (foundFiles.length > 0) {
-            foundFiles.forEach((file, index) => {
+            foundFiles.sort().reverse().forEach((file, index) => {
                 let opt = new Option(file.replace('tb_','').replace('.csv','') + (index === 0 ? " (Latest)" : ""), file);
                 selector.add(opt);
             });
             loadCsvData(foundFiles[0]);
-        } else {
-            document.getElementById('status').innerText = "No files found. Ensure name is tb_YYYY-MM-DD.csv";
         }
     }
 
@@ -94,48 +108,134 @@
         Papa.parse(filename, {
             download: true,
             header: true,
-            skipEmptyLines: true,
+            dynamicTyping: true,
             complete: function(results) {
-                renderTable(results.data);
-                document.getElementById('status').innerText = "Viewing: " + filename;
+                processAndRender(results.data, filename);
             }
         });
     }
 
-    function renderTable(data) {
-        if (dataTable) dataTable.destroy();
-        const headerRow = document.getElementById('tableHeader');
-        const body = document.getElementById('tableBody');
-        headerRow.innerHTML = ''; body.innerHTML = '';
-
-        if (!data || data.length === 0) return;
-        const columns = Object.keys(data[0]);
+    function processAndRender(data, filename) {
+        document.getElementById('status').innerText = "Viewing: " + filename;
         
-        columns.forEach(col => {
-            let th = document.createElement('th');
-            th.innerText = col.replace(/P(\d)/g, 'Phase $1 ');
-            headerRow.appendChild(th);
-        });
+        // --- 1. Top 10 Leaders Chart ---
+        const sortedForChart = [...data].sort((a, b) => b['Combat Waves'] - a['Combat Waves']).slice(0, 10);
+        renderMainChart(sortedForChart);
 
-        data.forEach(row => {
-            let tr = document.createElement('tr');
-            columns.forEach(col => {
-                let td = document.createElement('td');
-                let val = row[col];
-                td.innerText = (typeof val === 'number') ? val.toLocaleString() : (val || '-');
-                tr.appendChild(td);
-            });
+        // --- 2. Table Construction ---
+        if (dataTable) dataTable.destroy();
+        const body = document.getElementById('tableBody');
+        body.innerHTML = '';
+
+        data.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-child-data', JSON.stringify(row)); // Store full data for expansion
+            
+            // Generate Wave Data for Sparkline (P1-P6)
+            const waves = [row['P1 Waves'], row['P2 Waves'], row['P3 Waves'], row['P4 Waves'], row['P5 Waves'], row['P6 Waves']];
+            
+            tr.innerHTML = `
+                <td class="text-primary fw-bold" style="cursor:pointer">+</td>
+                <td class="fw-bold">${row['Name']}</td>
+                <td>${(row['Total Territory Points'] || 0).toLocaleString()}</td>
+                <td><span class="badge bg-success">${row['Combat Waves']}</span></td>
+                <td><canvas id="spark_${index}" class="sparkline-container"></canvas></td>
+                <td>${row['Platoon Units'] || 0}</td>
+            `;
             body.appendChild(tr);
+            renderSparkline(`spark_${index}`, waves);
         });
 
         dataTable = $('#statsTable').DataTable({
-            pageLength: 25,
-            order: [[1, 'desc']], 
-            scrollX: true
+            order: [[3, 'desc']], // Sort by Total Waves
+            pageLength: 25
         });
+
+        // Event listener for expanding rows
+        $('#statsTable tbody').on('click', 'td:first-child', function () {
+            const tr = $(this).closest('tr');
+            const row = dataTable.row(tr);
+
+            if (row.child.isShown()) {
+                row.child.hide();
+                $(this).text('+');
+            } else {
+                const fullData = JSON.parse(tr.attr('data-child-data'));
+                row.child(formatDetails(fullData)).show();
+                tr.next().addClass('details-row');
+                $(this).text('-');
+            }
+        });
+    }
+
+    function formatDetails(d) {
+        let html = '<div class="p-3"><h6>Detailed Phase Performance:</h6><div class="d-flex flex-wrap">';
+        for (let i = 1; i <= 6; i++) {
+            const deployed = d[`P${i} Deployed`];
+            if (deployed !== "No" && deployed !== 0) {
+                html += `
+                    <div class="phase-box">
+                        <strong>Phase ${i}</strong><br>
+                        <small>Waves: ${d[`P${i} Waves`]}</small><br>
+                        <small>GP Deployed: ${(d[`P${i} Deployed GP`] || 0).toLocaleString()}</small><br>
+                        <small>Specials: ${d[`P${i} Special Attempts`] || 0}</small>
+                    </div>`;
+            }
+        }
+        html += '</div></div>';
+        return html;
+    }
+
+    function renderMainChart(chartData) {
+        const ctx = document.getElementById('guildChart').getContext('2d');
+        if (mainChart) mainChart.destroy();
+        mainChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.map(d => d.Name),
+                datasets: [{
+                    label: 'Total Combat Waves',
+                    data: chartData.map(d => d['Combat Waves']),
+                    backgroundColor: 'rgba(26, 42, 108, 0.8)',
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    function renderSparkline(id, dataPoints) {
+        setTimeout(() => {
+            const ctx = document.getElementById(id).getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [1,2,3,4,5,6],
+                    datasets: [{
+                        data: dataPoints,
+                        borderColor: '#b21f1f',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    events: [], // Disable interactions for speed
+                    responsive: false,
+                    scales: { x: { display: false }, y: { display: false } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }, 100);
     }
 
     scanForFiles();
 </script>
+
 </body>
 </html>

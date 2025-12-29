@@ -12,11 +12,10 @@
         .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: 100%; }
         .table-card { background: white; border-radius: 12px; padding: 15px; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         
-        /* Table Styling */
         #statsTable thead th { background-color: #2c3e50; color: white; border: none; }
         .details-row { background-color: #f8f9fa !important; border-left: 5px solid #1a2a6c; }
-        .phase-box { background: white; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin: 5px; display: inline-block; min-width: 150px; }
-        .sparkline-container { width: 100px; height: 30px; }
+        .phase-box { background: white; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin: 5px; display: inline-block; min-width: 160px; }
+        .expand-btn { cursor: pointer; color: #1a2a6c; font-weight: bold; text-align: center; width: 30px; }
     </style>
 </head>
 <body>
@@ -24,11 +23,11 @@
 <div class="container-fluid">
     <div class="header-card d-flex justify-content-between align-items-center flex-wrap">
         <div>
-            <h1 class="fw-bold mb-1">Territory Battle Command Center</h1>
-            <p class="mb-0 opacity-75" id="status">Scanning for logs...</p>
+            <h1 class="fw-bold mb-1">Guild TB Dashboard</h1>
+            <p class="mb-0 opacity-75" id="status">Scanning for data...</p>
         </div>
         <div class="bg-white p-3 rounded text-dark shadow-sm">
-            <label class="small fw-bold d-block mb-1 text-muted text-uppercase">Select Operation Date</label>
+            <label class="small fw-bold d-block mb-1 text-muted text-uppercase">Select TB Date</label>
             <select id="dateSelector" class="form-select border-0 bg-light" onchange="loadCsvData(this.value)"></select>
         </div>
     </div>
@@ -36,7 +35,7 @@
     <div class="row">
         <div class="col-lg-12 mb-4">
             <div class="stat-card">
-                <h5 class="fw-bold"><i class="bi bi-graph-up"></i> Guild Wave Leaders (Top 10)</h5>
+                <h5 class="fw-bold">Combat Wave Leaders (Top 10)</h5>
                 <div style="height: 300px;">
                     <canvas id="guildChart"></canvas>
                 </div>
@@ -45,15 +44,15 @@
     </div>
 
     <div class="table-card">
-        <h5 class="fw-bold mb-3">Member Deployment Logs <small class="text-muted fw-normal">(Click rows for full Phase breakdown)</small></h5>
+        <h5 class="fw-bold mb-3">Member Performance <small class="text-muted fw-normal">(Click + to see Phase 1-6 details)</small></h5>
         <table id="statsTable" class="table table-hover align-middle" style="width:100%">
             <thead>
                 <tr>
                     <th></th> <th>Player Name</th>
                     <th>Total Points</th>
                     <th>Total Waves</th>
-                    <th>Wave Trend (P1-P6)</th>
-                    <th>Platoons</th>
+                    <th>Avg Waves/Phase</th>
+                    <th>Platoon Units</th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -71,14 +70,13 @@
     let dataTable;
     let mainChart;
 
-    // 1. Scan logic from previous turn
     async function scanForFiles() {
         const selector = document.getElementById('dateSelector');
         const foundFiles = [];
         let checkDate = new Date(); 
         checkDate.setDate(checkDate.getDate() + (7 - checkDate.getDay()) % 7);
 
-        for (let i = 0; i < 52; i++) { // Check last year
+        for (let i = 0; i < 52; i++) {
             const dateStr = checkDate.toISOString().split('T')[0];
             const fileName = `tb_${dateStr}.csv`;
             try {
@@ -88,7 +86,6 @@
             checkDate.setDate(checkDate.getDate() - 7);
         }
 
-        // Specific check for your starting file
         const manualFile = "tb_2025-12-28.csv";
         if (!foundFiles.includes(manualFile)) {
             const resp = await fetch(manualFile, { method: 'HEAD' });
@@ -118,44 +115,39 @@
     function processAndRender(data, filename) {
         document.getElementById('status').innerText = "Viewing: " + filename;
         
-        // --- 1. Top 10 Leaders Chart ---
         const sortedForChart = [...data].sort((a, b) => b['Combat Waves'] - a['Combat Waves']).slice(0, 10);
         renderMainChart(sortedForChart);
 
-        // --- 2. Table Construction ---
         if (dataTable) dataTable.destroy();
         const body = document.getElementById('tableBody');
         body.innerHTML = '';
 
-        data.forEach((row, index) => {
+        data.forEach((row) => {
             const tr = document.createElement('tr');
-            tr.setAttribute('data-child-data', JSON.stringify(row)); // Store full data for expansion
+            tr.setAttribute('data-child-data', JSON.stringify(row));
             
-            // Generate Wave Data for Sparkline (P1-P6)
-            const waves = [row['P1 Waves'], row['P2 Waves'], row['P3 Waves'], row['P4 Waves'], row['P5 Waves'], row['P6 Waves']];
+            // Simple calculation for Avg Waves (Total Waves divided by 6 phases)
+            const avgWaves = (row['Combat Waves'] / 6).toFixed(1);
             
             tr.innerHTML = `
-                <td class="text-primary fw-bold" style="cursor:pointer">+</td>
+                <td class="expand-btn">+</td>
                 <td class="fw-bold">${row['Name']}</td>
                 <td>${(row['Total Territory Points'] || 0).toLocaleString()}</td>
-                <td><span class="badge bg-success">${row['Combat Waves']}</span></td>
-                <td><canvas id="spark_${index}" class="sparkline-container"></canvas></td>
+                <td><span class="badge bg-success" style="font-size: 0.9rem;">${row['Combat Waves']}</span></td>
+                <td>${avgWaves}</td>
                 <td>${row['Platoon Units'] || 0}</td>
             `;
             body.appendChild(tr);
-            renderSparkline(`spark_${index}`, waves);
         });
 
         dataTable = $('#statsTable').DataTable({
-            order: [[3, 'desc']], // Sort by Total Waves
+            order: [[3, 'desc']], 
             pageLength: 25
         });
 
-        // Event listener for expanding rows
-        $('#statsTable tbody').on('click', 'td:first-child', function () {
+        $('#statsTable tbody').on('click', 'td.expand-btn', function () {
             const tr = $(this).closest('tr');
             const row = dataTable.row(tr);
-
             if (row.child.isShown()) {
                 row.child.hide();
                 $(this).text('+');
@@ -169,16 +161,16 @@
     }
 
     function formatDetails(d) {
-        let html = '<div class="p-3"><h6>Detailed Phase Performance:</h6><div class="d-flex flex-wrap">';
+        let html = '<div class="p-3"><h6>Phase-by-Phase Breakdown:</h6><div class="d-flex flex-wrap">';
         for (let i = 1; i <= 6; i++) {
             const deployed = d[`P${i} Deployed`];
             if (deployed !== "No" && deployed !== 0) {
                 html += `
                     <div class="phase-box">
-                        <strong>Phase ${i}</strong><br>
-                        <small>Waves: ${d[`P${i} Waves`]}</small><br>
-                        <small>GP Deployed: ${(d[`P${i} Deployed GP`] || 0).toLocaleString()}</small><br>
-                        <small>Specials: ${d[`P${i} Special Attempts`] || 0}</small>
+                        <div class="fw-bold text-primary border-bottom mb-1">Phase ${i}</div>
+                        <div class="small">Waves: <strong>${d[`P${i} Waves`]}</strong></div>
+                        <div class="small">GP: ${(d[`P${i} Deployed GP`] || 0).toLocaleString()}</div>
+                        <div class="small">Specials: ${d[`P${i} Special Attempts`] || 0}</div>
                     </div>`;
             }
         }
@@ -194,44 +186,19 @@
             data: {
                 labels: chartData.map(d => d.Name),
                 datasets: [{
-                    label: 'Total Combat Waves',
+                    label: 'Combat Waves',
                     data: chartData.map(d => d['Combat Waves']),
-                    backgroundColor: 'rgba(26, 42, 108, 0.8)',
-                    borderRadius: 5
+                    backgroundColor: '#1a2a6c',
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true } }
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, title: { display: true, text: 'Waves' } } }
             }
         });
-    }
-
-    function renderSparkline(id, dataPoints) {
-        setTimeout(() => {
-            const ctx = document.getElementById(id).getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [1,2,3,4,5,6],
-                    datasets: [{
-                        data: dataPoints,
-                        borderColor: '#b21f1f',
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        fill: false,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    events: [], // Disable interactions for speed
-                    responsive: false,
-                    scales: { x: { display: false }, y: { display: false } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }, 100);
     }
 
     scanForFiles();
